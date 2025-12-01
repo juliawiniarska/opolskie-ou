@@ -1,7 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
   Phone,
   Mail,
   Calculator,
@@ -16,8 +14,6 @@ import {
   ArrowRight,
   Bike,
   CheckCircle,
-  Clock,
-  TrendingUp,
 } from "lucide-react";
 
 const CUK_CODE = "28da35012d1947390118";

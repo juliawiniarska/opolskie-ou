@@ -1,5 +1,4 @@
 import { Phone, Mail } from "lucide-react";
-import { Button } from "../ui/button";
 
 export function Hero() {
   return (
@@ -31,18 +30,21 @@ export function Hero() {
             </p>
 
             <div className="flex items-center gap-4 pt-4">
-              <Button 
-                className="bg-[#2D7A5F] hover:bg-[#235A48] text-white px-8 py-6 rounded-md shadow-sm transition-colors"
-              >
-                Zobacz ofertę
-              </Button>
-              <Button 
-                variant="outline" 
-                className="border-2 border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 px-8 py-6 rounded-md transition-colors"
-              >
-                Umów darmową konsultację
-              </Button>
-            </div>
+  <a
+    href="/oferta"
+    className="inline-flex items-center justify-center bg-[#2D7A5F] hover:bg-[#235A48] text-white px-8 py-6 rounded-md shadow-sm transition-colors"
+  >
+    Zobacz ofertę
+  </a>
+
+  <a
+    href="/kontakt"
+    className="inline-flex items-center justify-center border-2 border-[#2D7A5F] text-[#2D7A5F] hover:bg-[#2D7A5F]/10 px-8 py-6 rounded-md transition-colors"
+  >
+    Umów darmową konsultację
+  </a>
+</div>
+
           </div>
 
           {/* Right: Contact card */}

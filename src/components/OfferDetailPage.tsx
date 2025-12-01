@@ -5,7 +5,6 @@ import { Car, Heart, Home, Plane, Briefcase, Tractor } from "lucide-react";
 
 import { OfferPageHero } from "./offer/OfferPageHero";
 import { OfferDetails } from "./offer/OfferDetails";
-import { ConsultationExpert } from "./offer/ConsulationExpert";
 import { QuickActions } from "./offer/QuickActions";
 
 type OfferConfig = {
