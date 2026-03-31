@@ -160,7 +160,7 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
 
 const clampStyle = (lines: number): React.CSSProperties => ({
   display: "-webkit-box",
-  WebkitLineClamp: lines as "unset", // mały trik dla typowania WebkitLineClamp
+  WebkitLineClamp: lines.toString(), // <-- ZMIANA TUTAJ: Konwersja na string bez any i bez "unset"
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 });

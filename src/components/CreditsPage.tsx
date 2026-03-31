@@ -9,8 +9,8 @@ import {
   ArrowRight,
   Check,
   AlertCircle,
-  LucideIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { OfferPageHero } from "./offer/OfferPageHero";
 import { PageLoader, usePageLoader } from "../GlobalContext";
@@ -202,9 +202,9 @@ export default function CreditsPage() {
   return (
     <main className="bg-[#F5F1E8] min-h-screen">
       <OfferPageHero
-        title={title}
-        description={description}
-        category={category}
+        title={title || ""}
+        description={description || ""}
+        category={category || ""}
         icon={<Icon className="w-8 h-8" strokeWidth={1.5} />}
         backTo="/kredyty"
       />
