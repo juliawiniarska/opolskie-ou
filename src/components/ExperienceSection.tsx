@@ -1,7 +1,12 @@
 import { Award, FileCheck, Users, Headphones } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { useEffect, useState } from "react";
 
-const benefits = [
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+const HOME_PAGE_ID = 2688; // <-- ID STRONY GŁÓWNEJ
+
+const defaultBenefits = [
   {
     icon: Award,
     title: "Licencja KNF i pełne bezpieczeństwo",
@@ -14,8 +19,8 @@ const benefits = [
   },
   {
     icon: Users,
-    title: "Eksperci z doświadczeniem",
-    description: "Ponad 12 lat w branży ubezpieczeniowej",
+    title: "Ekspert z doświadczeniem",
+    description: "8 lat w rolnictwie",
   },
   {
     icon: Headphones,
@@ -25,8 +30,32 @@ const benefits = [
 ];
 
 export function ExperienceSection() {
+  const [texts, setTexts] = useState<any>({});
+
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setTexts(json.acf);
+        }
+      } catch (e) {
+        console.error("ExperienceSection error:", e);
+      }
+    };
+    fetchPage();
+  }, []);
+
+  // Mapowanie benefitów (1-4)
+  const benefits = defaultBenefits.map((b, i) => ({
+    ...b,
+    title: texts[`exp_ben_${i + 1}_title`] || b.title,
+    description: texts[`exp_ben_${i + 1}_desc`] || b.description,
+  }));
+
   return (
-<section className="relative py-16 sm:py-24 lg:py-32 bg-[#F5F1E8] overflow-hidden">
+    <section className="relative py-16 sm:py-24 lg:py-32 bg-[#F5F1E8] overflow-hidden">
       {/* Diagonal split background */}
       <div className="pointer-events-none absolute inset-0">
         {/* Desktop – dokładnie ten sam kształt co wcześniej */}
@@ -52,56 +81,33 @@ export function ExperienceSection() {
           <div className="relative max-w-xl mx-auto lg:mx-0">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
               <ImageWithFallback
-                src="/img o nas.jpg"
+                src={texts.exp_image || "/img o nas.jpg"}
                 alt="Wojciech Kurzeja - Ekspert ubezpieczeniowy"
                 className="w-full aspect-[4/5] object-cover"
               />
             </div>
 
-     {/* 12+ lat – dolna chmurka, środek na rogu zdjęcia (mobile) */}
-<div
-  className="
-    absolute
-    bottom-0 left-10
-    translate-x-[-50%] translate-y-[50%]
-    sm:translate-x-0 sm:translate-y-0
-    sm:-bottom-8 sm:-left-8
-    bg-[#F5F1E8]
-    rounded-2xl sm:rounded-3xl
-    px-4 py-3 sm:px-8 sm:py-6
-    shadow-2xl border border-[#2D7A5F]/10
-  "
->
-  <div className="text-2xl sm:text-4xl md:text-5xl text-[#2D7A5F] mb-1 sm:mb-2">
-    12+
-  </div>
-  <div className="text-[#2D7A5F]/70 text-xs sm:text-lg">
-    Lat na rynku
-  </div>
-</div>
-
-{/* 2500+ klientów – górna chmurka, środek na rogu zdjęcia (mobile) */}
-<div
-  className="
-    absolute
-    top-0 right-10
-    translate-x-[50%] translate-y-[-50%]
-    sm:translate-x-0 sm:translate-y-0
-    sm:-top-8 sm:-right-8
-    bg-white
-    rounded-2xl sm:rounded-3xl
-    px-4 py-3 sm:px-8 sm:py-6
-    shadow-2xl border border-[#2D7A5F]/10
-  "
->
-  <div className="text-2xl sm:text-4xl md:text-5xl text-[#2D7A5F] mb-1 sm:mb-2">
-    2500+
-  </div>
-  <div className="text-[#2D7A5F]/70 text-xs sm:text-lg">
-    Klientów
-  </div>
-</div>
-
+            {/* 12+ lat – dolna chmurka */}
+            <div
+              className="
+                absolute
+                top-0 right-10
+                translate-x-[50%] translate-y-[-50%]
+                sm:translate-x-0 sm:translate-y-0
+                sm:-top-8 sm:-right-8
+                bg-white
+                rounded-2xl sm:rounded-3xl
+                px-4 py-3 sm:px-8 sm:py-6
+                shadow-2xl border border-[#2D7A5F]/10
+              "
+            >
+              <div className="text-2xl sm:text-4xl md:text-5xl text-[#2D7A5F] mb-1 sm:mb-2">
+                {texts.exp_stat_num || "100+"}
+              </div>
+              <div className="text-[#2D7A5F]/70 text-xs sm:text-lg">
+                {texts.exp_stat_label || "Klientów"}
+              </div>
+            </div>
           </div>
 
           {/* RIGHT – CONTENT */}
@@ -109,18 +115,14 @@ export function ExperienceSection() {
             <div className="space-y-5 sm:space-y-6">
               <div className="inline-block">
                 <span className="uppercase tracking-widest text-xs sm:text-sm bg-white/20 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full">
-                  O nas
+                  {texts.exp_badge || "O nas"}
                 </span>
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl leading-tight">
-                Zaufanie zbudowane na doświadczeniu
+                {texts.exp_title || "Zaufanie zbudowane na doświadczeniu"}
               </h2>
-              <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed">
-                Opolskie Ubezpieczenia to multiagencja z wieloletnim
-                doświadczeniem. Nasz założyciel,{" "}
-                <span className="text-[#F5F1E8]">Wojciech Kurzeja</span>,
-                specjalizuje się w ubezpieczeniach rolnych i majątkowych,
-                pomagając setkom gospodarstw i rodzin zabezpieczyć przyszłość.
+              <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed whitespace-pre-wrap">
+                {texts.exp_desc || "Opolskie Ubezpieczenia to multiagencja z wieloletnim doświadczeniem. Nasz założyciel, Wojciech Kurzeja, specjalizuje się w ubezpieczeniach rolnych i majątkowych, pomagając setkom gospodarstw i rodzin zabezpieczyć przyszłość."}
               </p>
             </div>
 
@@ -153,9 +155,10 @@ export function ExperienceSection() {
 
             {/* CTA */}
             <div className="pt-4 sm:pt-6">
-              <button className="bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] px-8 sm:px-10 py-4 sm:py-5 rounded-2xl transition-all shadow-xl text-base sm:text-lg">
-                Dowiedz się więcej
-              </button>
+              <a href="/o-nas" 
+                 className="bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] px-8 sm:px-10 py-4 sm:py-5 rounded-2xl transition-all shadow-xl text-base sm:text-lg inline-block">
+                {texts.exp_btn_text || "Dowiedz się więcej"}
+              </a>
             </div>
           </div>
         </div>

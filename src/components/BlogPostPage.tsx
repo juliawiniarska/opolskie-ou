@@ -16,6 +16,13 @@ import {
   Send,
 } from "lucide-react";
 
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+const WP_BASE2 = "https://www.opolskieubezpieczenia.pl/";
+
+// ID strony w WordPress (Panel ustawień bloga)
+const BLOG_SETTINGS_ID = 2700;
+
 type WpPost = {
   id: number;
   slug: string;
@@ -53,7 +60,24 @@ type Comment = {
   text: string;
 };
 
-const WP_BASE = "https://www.opolskieubezpieczenia.pl";
+// NOWE: Typ dla pól ACF (box boczny)
+type SinglePostACF = {
+  single_cta_title?: string;
+  single_cta_desc?: string;
+  single_phone?: string;
+  single_email_btn?: string;
+  single_cta_footer?: string;
+};
+
+// ---- ZMIANA 1: Funkcja naprawiająca URL (dodaje /wp/ jeśli brakuje) ----
+const fixImgUrl = (url?: string | null) => {
+  if (!url) return null;
+  // Jeśli URL zawiera /wp-content/ ale NIE MA przed nim /wp/, to dodajemy
+  if (url.includes('/wp-content/') && !url.includes('/wp/wp-content/')) {
+    return url.replace('/wp-content/', '/wp/wp-content/');
+  }
+  return url;
+};
 
 // ---- helpers ----
 const stripHtml = (html: string) =>
@@ -88,8 +112,7 @@ const formatDatePL = (iso: string) => {
   }
 };
 
-// delikatne “upiększenie” HTML z WP (dodaje klasy do tagów)
-// UWAGA: zakłada, że WP jest Twoje (zaufane). Jeśli chcesz twardą sanitację — dodaj DOMPurify.
+// delikatne “upiększenie” HTML z WP + ZMIANA 2: Naprawa zdjęć w treści
 const styleWpHtml = (html: string) => {
   if (!html) return "";
   if (typeof document === "undefined") return html;
@@ -150,9 +173,19 @@ const styleWpHtml = (html: string) => {
     fig.classList.add("my-8");
   });
 
+  // ZMIANA 2: Naprawiamy SRC obrazków wewnątrz treści
   doc.querySelectorAll("img").forEach((img) => {
     img.classList.add("rounded-2xl", "shadow-lg", "border", "border-[#2D7A5F]/10", "block", "mx-auto");
     img.setAttribute("loading", "lazy");
+    
+    // Pobieramy obecny src i naprawiamy go funkcją fixImgUrl
+    const currentSrc = img.getAttribute("src");
+    if (currentSrc) {
+        const fixedSrc = fixImgUrl(currentSrc);
+        if (fixedSrc) {
+            img.setAttribute("src", fixedSrc);
+        }
+    }
   });
 
   // hashtagowy paragraf: zamień w “chipsy”
@@ -232,13 +265,33 @@ export default function BlogPostPage() {
   const [sending, setSending] = useState(false);
   const [sentOk, setSentOk] = useState(false);
 
+  // NOWE: Stan dla tekstów edytowalnych (ACF)
+  const [texts, setTexts] = useState<SinglePostACF>({});
+
+  // 0) Pobieranie tekstów z ACF (dla strony kontenera)
+  useEffect(() => {
+    const fetchTexts = async () => {
+      try {
+        const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_SETTINGS_ID}?_fields=acf`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.acf) {
+          setTexts(json.acf);
+        }
+      } catch (e) {
+        console.error("Błąd pobierania tekstów ACF", e);
+      }
+    };
+    fetchTexts();
+  }, []);
+
   useEffect(() => {
     let aborted = false;
 
     const run = async () => {
       if (!slug) {
         setLoading(false);
-        setErrorMsg("Brak slug w adresie URL.");
         return;
       }
 
@@ -261,9 +314,13 @@ export default function BlogPostPage() {
 
         const title = decodeHtml(p.title?.rendered ?? "");
         const excerpt = decodeHtml(stripHtml(p.excerpt?.rendered ?? ""));
-        const featuredImg = p._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
+        
+        // ZMIANA 3: Naprawa URL dla zdjęcia wyróżniającego (header)
+        const rawFeaturedImg = p._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
+        const featuredImg = fixImgUrl(rawFeaturedImg);
 
         const rawHtml = p.content?.rendered ?? "";
+        // ZMIANA 4: styleWpHtml teraz też naprawia URL obrazków w treści
         const styledHtml = styleWpHtml(rawHtml);
 
         const mapped: Post = {
@@ -281,7 +338,6 @@ export default function BlogPostPage() {
       } catch {
         if (aborted) return;
         setPost(null);
-        setErrorMsg("Nie udało się pobrać wpisu z WordPressa (slug / REST API / CORS).");
       } finally {
         if (!aborted) setLoading(false);
       }
@@ -369,17 +425,16 @@ export default function BlogPostPage() {
     setSending(true);
     try {
       const res = await fetch(`${WP_BASE}/wp-json/ou/v1/comment`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    postId: Number(post.id),
-    name: n,
-    email: em,
-    content: ct,
-    hp: "", // honeypot: ZAWSZE pusty
-  }),
-});
-
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId: Number(post.id),
+          name: n,
+          email: em,
+          content: ct,
+          hp: "", // honeypot: ZAWSZE pusty
+        }),
+      });
 
       if (!res.ok) {
         // najczęściej 401/403 jeśli WP nie pozwala na anon POST przez REST
@@ -416,7 +471,7 @@ export default function BlogPostPage() {
       }
     } catch {
       setCommentError(
-        "Nie udało się wysłać komentarza. Jeśli dostajesz 401/403, WordPress może blokować dodawanie komentarzy przez REST bez autoryzacji (albo CORS)."
+        "Nie udało się wysłać komentarza."
       );
     } finally {
       setSending(false);
@@ -468,31 +523,38 @@ export default function BlogPostPage() {
 
             <div className="lg:col-span-4">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl">
-                <h3 className="text-white text-lg sm:text-xl mb-2">Umów konsultację</h3>
+                {/* EDYTOWALNE: Tytuł */}
+                <h3 className="text-white text-lg sm:text-xl mb-2">
+                  {texts.single_cta_title || "Umów konsultację"}
+                </h3>
+                {/* EDYTOWALNE: Opis */}
                 <p className="text-white/80 text-sm leading-relaxed mb-6">
-                  Zadzwoń lub napisz — przygotujemy warianty i przejdziemy przez szczegóły.
+                  {texts.single_cta_desc || "Zadzwoń lub napisz — przygotujemy warianty i przejdziemy przez szczegóły."}
                 </p>
 
                 <div className="space-y-3">
                   <a
-                    href="tel:739079729"
+                    href={`tel:${(texts.single_phone || "739079729").replace(/\s/g, "")}`}
                     className="w-full inline-flex items-center justify-center rounded-xl bg-white text-[#2D7A5F] px-5 py-3 font-medium hover:bg-[#F5F1E8] transition-colors"
                   >
-                    <Phone className="w-4 h-4 mr-2" /> Zadzwoń: 739 079 729
+                    {/* EDYTOWALNE: Telefon */}
+                    <Phone className="w-4 h-4 mr-2" /> Zadzwoń: {texts.single_phone || "739 079 729"}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </a>
                   <a
-                    href={`${WP_BASE}/kontakt/`}
+                    href={`${WP_BASE2}/kontakt/`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full inline-flex items-center justify-center rounded-xl border border-white/30 bg-transparent text-white px-5 py-3 hover:bg-white/10 transition-colors"
                   >
-                    <Mail className="w-4 h-4 mr-2" /> Skontaktuj się z nami
+                    {/* EDYTOWALNE: Przycisk mail */}
+                    <Mail className="w-4 h-4 mr-2" /> {texts.single_email_btn || "Skontaktuj się z nami"}
                   </a>
                 </div>
 
                 <div className="mt-6 pt-5 border-t border-white/20 text-xs text-white/70">
-                  Odpowiemy i dobierzemy najlepszą opcję do budżetu i potrzeb.
+                  {/* EDYTOWALNE: Stopka */}
+                  {texts.single_cta_footer || "Odpowiemy i dobierzemy najlepszą opcję do budżetu i potrzeb."}
                 </div>
               </div>
             </div>
@@ -561,7 +623,7 @@ export default function BlogPostPage() {
                 ) : commentError ? (
                   <div className="text-sm text-[#6B6B6B]">{commentError}</div>
                 ) : comments.length === 0 ? (
-                  <div className="text-sm text-[#6B6B6B]">Brak komentarzy — bądź pierwsza/y 🙂</div>
+                  <div className="text-sm text-[#6B6B6B]">Brak komentarzy — bądź pierwszy 🙂</div>
                 ) : (
                   <div className="space-y-5">
                     {comments.map((c) => (
@@ -583,7 +645,7 @@ export default function BlogPostPage() {
 
                   {sentOk && (
                     <div className="mb-4 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 px-4 py-3 text-sm text-[#2D7A5F]">
-                      Komentarz wysłany. Może wymagać akceptacji w WordPressie.
+                      Komentarz wysłany.
                     </div>
                   )}
 
@@ -601,7 +663,7 @@ export default function BlogPostPage() {
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25"
-                          placeholder="Np. Julia"
+                          placeholder=""
                           autoComplete="name"
                         />
                       </div>
@@ -612,7 +674,7 @@ export default function BlogPostPage() {
                           onChange={(e) => setEmail(e.target.value)}
                           type="email"
                           className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25"
-                          placeholder="np. julia@mail.com"
+                          placeholder=""
                           autoComplete="email"
                         />
                       </div>
@@ -627,9 +689,7 @@ export default function BlogPostPage() {
                         className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25 resize-none"
                         placeholder="Napisz komentarz…"
                       />
-                      <div className="mt-2 text-xs text-[#6B6B6B]">
-                        Komentarze mogą wymagać moderacji (ustawienia WordPressa).
-                      </div>
+                      
                     </div>
 
                     <button

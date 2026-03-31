@@ -1,7 +1,42 @@
+import { Link } from "react-router-dom";
 import { Facebook, Instagram, Youtube, Phone, Mail, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
+
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+// Ustawienia Globalne (Telefon, Email, Adres, Sociale, Stopka)
+const GLOBAL_SETTINGS_ID = 2756; 
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const [global, setGlobal] = useState<any>({});
+
+  useEffect(() => {
+    const fetchGlobal = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setGlobal(json.acf);
+        }
+      } catch (e) {
+        console.error("Footer global settings error:", e);
+      }
+    };
+    fetchGlobal();
+  }, []);
+
+  // Helpersy z fallbackiem (w razie gdyby pola były puste)
+  const logo = global.footer_logo || "/logo-opolskie-ubezpiecznia.png";
+  const desc = global.footer_desc || "Multiagencja ubezpieczeniowa z 8-letnim doświadczeniem. Specjalizujemy się w ubezpieczeniach rolnych, majątkowych i komunikacyjnych.";
+  
+  const phone = global.global_phone || "739 079 729";
+  const email = global.global_email || "biuro@opolskieubezpieczenia.pl";
+  const address = global.global_address || "ul. Adama Mickiewicza lok. 14, 48-304 Nysa";
+
+  const fbLink = global.social_fb || "#";
+  const igLink = global.social_ig || "#";
+  const ytLink = global.social_yt || "#";
 
   return (
     <footer className="bg-[#F5F1E8] text-[#2D7A5F] border-t border-[#2D7A5F]/10">
@@ -13,7 +48,7 @@ export function Footer() {
             {/* LOGO + NAZWA OBOK SIEBIE */}
             <div className="flex items-center gap-4">
               <img
-                src="/logo-opolskie-ubezpiecznia.png"
+                src={logo}
                 alt="Opolskie Ubezpieczenia"
                 className="h-12 sm:h-16 w-auto"
               />
@@ -22,27 +57,31 @@ export function Footer() {
               </span>
             </div>
 
-            <p className="text-[#2D7A5F]/70 text-sm sm:text-base leading-relaxed max-w-md">
-              Multiagencja ubezpieczeniowa z ponad 12-letnim doświadczeniem.
-              Specjalizujemy się w ubezpieczeniach rolnych, majątkowych
-              i komunikacyjnych.
+            <p className="text-[#2D7A5F]/70 text-sm sm:text-base leading-relaxed max-w-md whitespace-pre-wrap">
+              {desc}
             </p>
 
             <div className="flex items-center gap-3">
               <a
-                href="#"
+                href={fbLink}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
               >
                 <Facebook className="w-5 h-5 sm:w-6 sm:h-6" />
               </a>
               <a
-                href="#"
+                href={igLink}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
               >
                 <Instagram className="w-5 h-5 sm:w-6 sm:h-6" />
               </a>
               <a
-                href="#"
+                href={ytLink}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
               >
                 <Youtube className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -57,10 +96,10 @@ export function Footer() {
                 <Phone className="w-5 h-5 text-[#2D7A5F]" />
               </div>
               <a
-                href="tel:739079729"
+                href={`tel:${phone.replace(/\s/g, "")}`}
                 className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors text-lg"
               >
-                739 079 729
+                {phone}
               </a>
             </div>
 
@@ -69,10 +108,10 @@ export function Footer() {
                 <Mail className="w-5 h-5 text-[#2D7A5F]" />
               </div>
               <a
-                href="mailto:biuro@opolskieubezpieczenia.pl"
+                href={`mailto:${email}`}
                 className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors break-all text-lg"
               >
-                biuro@opolskieubezpieczenia.pl
+                {email}
               </a>
             </div>
 
@@ -80,8 +119,9 @@ export function Footer() {
               <div className="bg-[#2D7A5F]/10 p-3 rounded-xl shrink-0">
                 <MapPin className="w-5 h-5 text-[#2D7A5F]" />
               </div>
-              <div className="text-[#2D7A5F] text-lg">
-                Nysa, woj. opolskie
+              {/* Dodano whitespace-pre-line, żeby respektował Entery z pola tekstowego w WP */}
+              <div className="text-[#2D7A5F] text-lg whitespace-pre-line">
+                {address}
               </div>
             </div>
           </div>
@@ -93,19 +133,15 @@ export function Footer() {
             © {currentYear} Opolskie Ubezpieczenia. Wszelkie prawa zastrzeżone.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="#"
+            <Link
+              to="/polityka-prywatnosci"
               className="text-[#2D7A5F]/60 hover:text-[#2D7A5F] transition-colors"
             >
               Polityka prywatności
-            </a>
-            <a
-              href="#"
-              className="text-[#2D7A5F]/60 hover:text-[#2D7A5F] transition-colors"
-            >
-              Regulamin
-            </a>
-            <span className="text-[#2D7A5F]/60">Licencja KNF</span>
+            </Link>
+            <Link to="/faq" className="text-[#2D7A5F]/60 hover:text-[#2D7A5F] transition-colors">
+              FAQ
+            </Link>
           </div>
         </div>
       </div>

@@ -3,18 +3,24 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { offers } from "../data/offers";
 
-const insurers = [
-  { name: "PZU", logo: "/logos/pzu.png" },
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+const OFFERS_PAGE_ID = 2690; // ID strony "[EDYCJA] Oferty" (teksty kafelków i listy)
+const HOME_PAGE_ID = 2688;   // ID strony "[EDYCJA] Strona Główna" (logotypy partnerów)
+
+// Domyślna lista ubezpieczycieli (zapasowa)
+const defaultInsurers = [
+  { name: "PZU", logo: "/insurers/pzu.png" },
   { name: "Agro Ubezpieczenia", logo: "/insurers/agro.png" },
   { name: "Allianz", logo: "/insurers/allianz.png" },
-  { name: "Benefia", logo: "/insurers/benefia.png" },
+  { name: "Benefia", logo: "/insurers/benefia.jpg" },
   { name: "Compensa", logo: "/insurers/compensa.png" },
   { name: "ERGO Hestia", logo: "/insurers/ergo-hestia.png" },
   { name: "Generali", logo: "/insurers/generali.png" },
   { name: "InterRisk", logo: "/insurers/interrisk.png" },
   { name: "Wiener", logo: "/insurers/wiener.png" },
   { name: "Link4", logo: "/insurers/link4.png" },
-  { name: "Warta", logo: "/insurers/warta.png" },
+  { name: "Warta", logo: "/insurers/warta.jpg" },
   { name: "Uniqa", logo: "/insurers/uniqa.png" },
   { name: "Proama", logo: "/insurers/proama.png" },
 ];
@@ -22,8 +28,61 @@ const insurers = [
 export function ServicesShowcase() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-
   const [logoStart, setLogoStart] = useState(0);
+  
+  // Stan na dane z WordPressa
+  const [texts, setTexts] = useState<any>({});
+  const [insurersList, setInsurersList] = useState(defaultInsurers);
+
+  // 1. Pobieranie tekstów ofert (ID 2690)
+  useEffect(() => {
+    const fetchOffersData = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${OFFERS_PAGE_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setTexts(json.acf);
+        }
+      } catch (e) {
+        console.error("Błąd pobierania ofert z WP", e);
+      }
+    };
+    fetchOffersData();
+  }, []);
+
+  // 2. Pobieranie logotypów ze Strony Głównej (ID 2688)
+  useEffect(() => {
+    const fetchHomeLogos = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          const acf = json.acf || {};
+          
+          const loadedInsurers = [];
+          // Sprawdzamy pola od insurer_1_logo do insurer_20_logo
+          for (let i = 1; i <= 20; i++) {
+            const logoUrl = acf[`insurer_${i}_logo`];
+            const nameText = acf[`insurer_${i}_name`]; // Opcjonalna nazwa jeśli wpiszesz
+
+            if (logoUrl) {
+              loadedInsurers.push({
+                name: nameText || `Partner ${i}`,
+                logo: logoUrl
+              });
+            }
+          }
+
+          if (loadedInsurers.length > 0) {
+            setInsurersList(loadedInsurers);
+          }
+        }
+      } catch (e) {
+        console.error("Błąd pobierania logotypów z WP", e);
+      }
+    };
+    fetchHomeLogos();
+  }, []);
 
   useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 768);
@@ -33,19 +92,21 @@ export function ServicesShowcase() {
   }, []);
 
   useEffect(() => {
+    if (insurersList.length === 0) return;
     const id = setInterval(() => {
-      setLogoStart((prev) => (prev + 1) % insurers.length);
+      setLogoStart((prev) => (prev + 1) % insurersList.length);
     }, 3500);
     return () => clearInterval(id);
-  }, []);
+  }, [insurersList]);
 
   const visibleCount = 5;
   const visibleInsurers = useMemo(() => {
-    return Array.from({ length: visibleCount }, (_, i) => insurers[(logoStart + i) % insurers.length]);
-  }, [logoStart]);
+    if (insurersList.length === 0) return [];
+    return Array.from({ length: visibleCount }, (_, i) => insurersList[(logoStart + i) % insurersList.length]);
+  }, [logoStart, insurersList]);
 
-  const handlePrev = () => setLogoStart((prev) => (prev - 1 + insurers.length) % insurers.length);
-  const handleNext = () => setLogoStart((prev) => (prev + 1) % insurers.length);
+  const handlePrev = () => setLogoStart((prev) => (prev - 1 + insurersList.length) % insurersList.length);
+  const handleNext = () => setLogoStart((prev) => (prev + 1) % insurersList.length);
 
   return (
     <section id="oferta" className="py-24 sm:py-28 lg:py-32 bg-[#F5F1E8] relative">
@@ -56,14 +117,14 @@ export function ServicesShowcase() {
         <div className="text-center mb-14 sm:mb-16 lg:mb-20 max-w-3xl mx-auto">
           <div className="inline-block mb-5 sm:mb-6">
             <span className="text-[#2D7A5F] uppercase tracking-widest text-xs sm:text-sm bg-[#2D7A5F]/10 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full">
-              Kompleksowa oferta
+              {texts.offer_hero_badge || "Kompleksowa oferta"}
             </span>
           </div>
           <h2 className="text-[#2D7A5F] text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-tight mb-4 sm:mb-6">
-            Wybierz rodzaj ubezpieczenia
+            {texts.offer_hero_title || "Wybierz rodzaj ubezpieczenia"}
           </h2>
           <p className="text-[#2D7A5F]/70 text-base sm:text-lg lg:text-xl leading-relaxed">
-            Kliknij kafelek, aby przejść do szczegółów i zobaczyć przykładowy zakres ochrony.
+            {texts.offer_hero_desc || "Kliknij kafelek, aby przejść do szczegółów i zobaczyć przykładowy zakres ochrony."}
           </p>
         </div>
 
@@ -71,13 +132,26 @@ export function ServicesShowcase() {
           {offers.map((service, index) => {
             const Icon = service.icon;
             const isActiveMobile = isMobile && activeIndex === index;
+            
+            // Mapowanie indeksu (0-5) na ID w ACF (1-6)
+            const acfId = index + 1;
+
+            // Pobieranie danych z WP lub fallback do pliku offers.ts
+            const title = texts[`offer_${acfId}_title`] || service.title;
+            const subtitle = texts[`offer_${acfId}_subtitle`] || service.subtitle;
+            const description = texts[`offer_${acfId}_short_desc`] || service.description;
+
+            // Pobieranie listy wypunktowanej z WP (jeśli jest)
+            const rawFeatures = texts[`offer_${acfId}_list_features`];
+            const features = rawFeatures 
+                ? rawFeatures.split('\n').filter((l: string) => l.trim() !== '') 
+                : service.features;
 
             return (
               <Link
                 key={service.slug}
                 to={`/oferta/${service.slug}`}
                 onClick={(e) => {
-                  // mobile: 1 tap = „hover”, 2 tap = przejście
                   if (isMobile && activeIndex !== index) {
                     e.preventDefault();
                     setActiveIndex(index);
@@ -121,7 +195,7 @@ export function ServicesShowcase() {
                         ${isActiveMobile ? "text-white/70" : "text-[#2D7A5F]/60 group-hover:text-white/70"}
                       `}
                     >
-                      {service.subtitle}
+                      {subtitle}
                     </div>
                     <h3
                       className={`
@@ -129,7 +203,7 @@ export function ServicesShowcase() {
                         ${isActiveMobile ? "text-white" : "text-[#2D7A5F] group-hover:text-white"}
                       `}
                     >
-                      {service.title}
+                      {title}
                     </h3>
                     <p
                       className={`
@@ -137,12 +211,13 @@ export function ServicesShowcase() {
                         ${isActiveMobile ? "text-white/90" : "text-[#2D7A5F]/70 group-hover:text-white/90"}
                       `}
                     >
-                      {service.description}
+                      {description}
                     </p>
                   </div>
 
+                  {/* PRZYWRÓCONA LISTA WYPUNKTOWANA */}
                   <ul className="space-y-2 pt-3 sm:pt-4">
-                    {service.features.map((feature) => (
+                    {features.map((feature: string) => (
                       <li
                         key={feature}
                         className={`
@@ -171,11 +246,11 @@ export function ServicesShowcase() {
           })}
         </div>
 
-        {/* Logo carousel (zostaje jak masz) */}
+        {/* Logo carousel (mobile) - korzysta teraz z insurersList */}
         <div className="mt-12 md:hidden">
           <div className="flex gap-4 overflow-x-auto pb-2">
-            {insurers.map((insurer) => (
-              <div key={insurer.name} className="basis-1/3 min-w-[33%] flex-shrink-0 flex justify-center">
+            {insurersList.map((insurer, idx) => (
+              <div key={idx} className="basis-1/3 min-w-[33%] flex-shrink-0 flex justify-center">
                 <div className="h-20 w-full max-w-[120px] rounded-2xl bg-white border border-[#2D7A5F]/10 flex items-center justify-center">
                   <img src={insurer.logo} alt={insurer.name} className="max-h-10 w-auto object-contain" />
                 </div>
@@ -184,11 +259,12 @@ export function ServicesShowcase() {
           </div>
         </div>
 
+        {/* Logo carousel (desktop) */}
         <div className="mt-16 hidden md:block">
           <div className="rounded-3xl bg-[#2D7A5F]/5 px-6 py-6 lg:px-8 lg:py-7">
             <div className="flex items-center justify-center gap-6 lg:gap-8">
-              {visibleInsurers.map((insurer) => (
-                <div key={insurer.name} className="flex-1 max-w-[180px] flex justify-center">
+              {visibleInsurers.map((insurer, idx) => (
+                <div key={idx} className="flex-1 max-w-[180px] flex justify-center">
                   <div className="h-24 lg:h-28 w-full rounded-3xl bg-white border border-[#2D7A5F]/10 flex items-center justify-center">
                     <img src={insurer.logo} alt={insurer.name} className="max-h-16 w-auto object-contain" />
                   </div>
@@ -196,7 +272,6 @@ export function ServicesShowcase() {
               ))}
             </div>
 
-            {/* USUWAMY kropki — zostawiamy same strzałki POD spodem */}
             <div className="mt-6 flex justify-center gap-3">
               <button
                 type="button"

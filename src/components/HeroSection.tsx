@@ -1,11 +1,49 @@
-import { ArrowRight, Shield, } from "lucide-react";
+import { ArrowRight, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+const HOME_PAGE_ID = 2688; // <-- WPISZ TU ID SWOJEJ STRONY GŁÓWNEJ
+const GLOBAL_SETTINGS_ID = 2756; // <-- ID strony z telefonem/emailem
 
 export function HeroSection() {
-  // const stats = [
-  //   { icon: CheckCircle2, value: "2500+", label: "Zadowolonych klientów" },
-  //   { icon: TrendingUp, value: "20+", label: "Firm ubezpieczeniowych" },
-  //   { icon: Shield, value: "100%", label: "Bezpieczeństwo" },
-  // ];
+  const [texts, setTexts] = useState<any>({});
+  const [global, setGlobal] = useState<any>({});
+
+  // Pobieranie danych strony głównej
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setTexts(json.acf);
+        }
+      } catch (e) {
+        console.error("HeroSection error:", e);
+      }
+    };
+    fetchPage();
+  }, []);
+
+  // Pobieranie danych globalnych
+  useEffect(() => {
+    const fetchGlobal = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setGlobal(json.acf);
+        }
+      } catch (e) {
+        console.error("Global settings error:", e);
+      }
+    };
+    fetchGlobal();
+  }, []);
+
+  const phone = global.global_phone || "739 079 729";
+  const email = global.global_email || "biuro@opolskieubezpieczenia.pl";
 
   return (
     <section
@@ -21,19 +59,18 @@ export function HeroSection() {
 
       {/* Ilustracja jako tło na mobile / tablet – na całą sekcję, przyklejona do góry */}
       <div className="pointer-events-none absolute inset-0 lg:hidden">
-  <img
-    src="/aaaaaa.png"
-    alt="Konsultacja ubezpieczeniowa"
-    className="h-full w-full object-cover object-bottom opacity-30"
-  />
-</div>
-
+        <img
+          src={texts.hero_img_mobile || "/aaaaaa.png"}
+          alt="Konsultacja ubezpieczeniowa"
+          className="h-full w-full object-cover object-bottom opacity-30"
+        />
+      </div>
 
       {/* Ilustracja po prawej – desktop */}
       <div className="pointer-events-none absolute inset-y-[-40px] right-0 hidden w-[100%] lg:block">
         <div className="relative h-full">
           <img
-            src="aa.png"
+            src={texts.hero_img_desktop || "aa.png"}
             alt="Konsultacja ubezpieczeniowa"
             className="h-full w-full object-cover rounded-[4.5rem] opacity-50"
           />
@@ -50,64 +87,41 @@ export function HeroSection() {
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#2D7A5F]/10">
                   <Shield className="h-3.5 w-3.5 text-[#2D7A5F]" />
                 </span>
-                Multiagencja ubezpieczeniowa • Nysa
+                {texts.hero_badge || "Multiagencja ubezpieczeniowa • Nysa"}
               </p>
 
               <h1 className="text-[#2D7A5F] text-[2.5rem] sm:text-5xl lg:text-[3.6rem] xl:text-[4.2rem] leading-[1.05] font-bold tracking-tight">
-                <span className="block">Twoje bezpieczeństwo</span>
-                <span className="block text-[#1B5C45]">to nasza misja</span>
+                <span className="block">{texts.hero_title_1 || "Twoje bezpieczeństwo"}</span>
+                <span className="block text-[#1B5C45]">{texts.hero_title_2 || "to nasza misja"}</span>
               </h1>
 
               <p className="max-w-2xl text-lg sm:text-xl text-[#2D7A5F]/70 leading-relaxed">
-                Kompleksowe ubezpieczenia dla Ciebie, Twojej rodziny i firmy.
-                Porównujemy 10+ ofert i znajdujemy najlepsze rozwiązanie.
+                {texts.hero_desc || "Kompleksowe ubezpieczenia dla Ciebie, Twojej rodziny i firmy. Porównujemy 10+ ofert i znajdujemy najlepsze rozwiązanie."}
               </p>
             </div>
 
             {/* CTA */}
             <div className="flex flex-wrap items-center gap-4 pt-4 sm:pt-6">
-              <button className="group flex items-center gap-3 rounded-2xl bg-[#2D7A5F] px-8 sm:px-10 py-4 sm:py-5 text-white shadow-xl shadow-[#2D7A5F]/30 transition-all hover:bg-[#1F5A43] hover:shadow-2xl hover:shadow-[#2D7A5F]/40">
-                <span className="text-base sm:text-lg">Kalkulator online</span>
+              <a
+                href="/kalkulator"
+                className="group flex items-center gap-3 rounded-2xl bg-[#2D7A5F] px-8 sm:px-10 py-4 sm:py-5 text-white shadow-xl shadow-[#2D7A5F]/30 transition-all hover:bg-[#1F5A43] hover:shadow-2xl hover:shadow-[#2D7A5F]/40"
+              >
+                <span className="text-base sm:text-lg">{texts.hero_btn_text || "Kalkulator online"}</span>
                 <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:translate-x-1" />
-              </button>
+              </a>
             </div>
-
-            {/* Statystyki zaufania */}
-            {/* <div className="pt-6 sm:pt-8">
-              <div className="flex flex-wrap gap-6 sm:gap-10">
-                {stats.map((stat, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="rounded-xl bg-[#2D7A5F]/10 p-3">
-                      <stat.icon
-                        className="h-6 w-6 text-[#2D7A5F]"
-                        strokeWidth={2.5}
-                      />
-                    </div>
-                    <div>
-                      <div className="text-xl sm:text-2xl text-[#2D7A5F]">
-                        {stat.value}
-                      </div>
-                      <div className="text-sm text-[#2D7A5F]/60">
-                        {stat.label}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div> */}
           </div>
 
           {/* PRAWA STRONA – karta konsultacji */}
           <div className="relative mt-8 lg:mt-0 lg:col-span-5 lg:flex lg:items-center lg:justify-end">
-<div className="relative z-10 w-full rounded-3xl border border-[#2D7A5F]/10 bg-white p-7 sm:p-8 lg:p-10 shadow-2xl lg:max-w-[460px] lg:ml-auto lg:translate-y-6">
+            <div className="relative z-10 w-full rounded-3xl border border-[#2D7A5F]/10 bg-white p-7 sm:p-8 lg:p-10 shadow-2xl lg:max-w-[460px] lg:ml-auto lg:translate-y-6">
               <div className="space-y-6 ">
                 <div className="space-y-3 ">
                   <h3 className="text-2xl sm:text-3xl text-[#2D7A5F]">
-                    Umów się na konsultację
+                    {texts.hero_card_title || "Umów się na konsultację"}
                   </h3>
                   <p className="text-base sm:text-lg leading-relaxed text-[#2D7A5F]/70">
-                    Skontaktuj się z naszym ekspertem i otrzymaj
-                    spersonalizowaną ofertę.
+                    {texts.hero_card_desc || "Skontaktuj się z naszym ekspertem i otrzymaj spersonalizowaną ofertę."}
                   </p>
                 </div>
 
@@ -117,20 +131,20 @@ export function HeroSection() {
                       Telefon
                     </div>
                     <a
-                      href="tel:739079729"
+                      href={`tel:${phone.replace(/\s/g, "")}`}
                       className="text-2xl sm:text-3xl text-[#2D7A5F] transition-colors hover:text-[#1F5A43]"
                     >
-                      739 079 729
+                      {phone}
                     </a>
                   </div>
 
                   <div className="rounded-2xl bg-[#F5F1E8] p-5 sm:p-6">
                     <div className="mb-2 text-sm text-[#2D7A5F]/60">Email</div>
                     <a
-                      href="mailto:biuro@opolskieubezpieczenia.pl"
+                      href={`mailto:${email}`}
                       className="break-all text-sm sm:text-base text-[#2D7A5F] transition-colors hover:text-[#1F5A43]"
                     >
-                      biuro@opolskieubezpieczenia.pl
+                      {email}
                     </a>
                   </div>
                 </div>
@@ -144,10 +158,10 @@ export function HeroSection() {
                     </div>
                     <div>
                       <div className="text-base sm:text-lg text-[#2D7A5F]">
-                        Wojciech Kurzeja
+                        {texts.hero_person_name || "Wojciech Kurzeja"}
                       </div>
                       <div className="text-sm text-[#2D7A5F]/60">
-                        Ekspert ubezpieczeniowy
+                        {texts.hero_person_role || "Ekspert ubezpieczeniowy"}
                       </div>
                     </div>
                   </div>

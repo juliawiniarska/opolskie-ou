@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Mail,
@@ -8,26 +7,16 @@ import {
   Video,
   Wheat,
   ShieldCheck,
-  ExternalLink,
   Sparkles,
-  Play,
 } from "lucide-react";
 
-const WP_BASE = "https://www.opolskieubezpieczenia.pl";
-const CONTACT_URL = `${WP_BASE}/kontakt/`;
-const INSTAGRAM_URL = "https://www.instagram.com/opolskieubezpieczenia/";
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+const DRONE_PAGE_ID = 2708; // <-- TU WPISZ ID STRONY "REALIZACJE"
+const GLOBAL_SETTINGS_ID = 2756; // ID ustawień globalnych
 
-// Feed zadziała dopiero po dodaniu endpointu na WP (plugin + token)
-const IG_ENDPOINT = `${WP_BASE}/wp-json/ou/v1/instagram?limit=9`;
-
-type IGItem = {
-  id: string;
-  media_type: "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM";
-  media_url?: string;
-  thumbnail_url?: string;
-  permalink: string;
-  caption?: string;
-};
+const CONTACT_URL = "https://www.opolskieubezpieczenia.pl/kontakt/";
+const INSTAGRAM_SCRIPT_URL = "https://cdn.trustindex.io/loader-feed.js?a055963611ea6261358618116af";
 
 function FeatureCard({
   category,
@@ -60,17 +49,15 @@ function FeatureCard({
         </div>
       </div>
 
-     {/* title (bez clamp – rośnie dynamicznie) */}
-<h3 className="text-xl sm:text-[22px] text-[#1A1A1A] mb-2 leading-tight min-h-[56px] sm:min-h-[64px]">
-  {title}
-</h3>
+      {/* title */}
+      <h3 className="text-xl sm:text-[22px] text-[#1A1A1A] mb-2 leading-tight min-h-[56px] sm:min-h-[64px]">
+        {title}
+      </h3>
 
-{/* desc (też bez clamp – rośnie dynamicznie) */}
-<p className="text-sm sm:text-[15px] text-[#6B6B6B] leading-relaxed flex-1">
-  {description}
-</p>
-
-
+      {/* desc */}
+      <p className="text-sm sm:text-[15px] text-[#6B6B6B] leading-relaxed flex-1">
+        {description}
+      </p>
 
       {actions ? (
         <div className="mt-6 pt-4 border-t border-[#2D7A5F]/10">{actions}</div>
@@ -80,31 +67,55 @@ function FeatureCard({
 }
 
 export default function DroneRealizationsPage() {
-  const [igItems, setIgItems] = useState<IGItem[]>([]);
-  const [igLoading, setIgLoading] = useState(true);
+  const widgetContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Stany na dane
+  const [texts, setTexts] = useState<any>({});
+  const [global, setGlobal] = useState<any>({});
 
+  // 1. Pobieranie treści strony REALIZACJE
   useEffect(() => {
-    let aborted = false;
-
-    const run = async () => {
-      setIgLoading(true);
+    const fetchPage = async () => {
       try {
-        const res = await fetch(IG_ENDPOINT);
-        if (!res.ok) throw new Error("no endpoint");
-        const data = (await res.json()) as { items?: IGItem[] };
-        const items = Array.isArray(data?.items) ? data.items : [];
-        if (!aborted) setIgItems(items);
-      } catch {
-        if (!aborted) setIgItems([]); // fallback: placeholdery
-      } finally {
-        if (!aborted) setIgLoading(false);
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${DRONE_PAGE_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setTexts(json.acf);
+        }
+      } catch (e) {
+        console.error("DronePage fetch error:", e);
       }
     };
+    fetchPage();
+  }, []);
 
-    run();
-    return () => {
-      aborted = true;
+  // 2. Pobieranie danych globalnych (telefon, email)
+  useEffect(() => {
+    const fetchGlobal = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setGlobal(json.acf);
+        }
+      } catch (e) {
+        console.error("Global settings error:", e);
+      }
     };
+    fetchGlobal();
+  }, []);
+
+  const phone = global.global_phone || "739 079 729";
+  
+  // --- ŁADOWANIE SKRYPTU TRUSTINDEX ---
+  useEffect(() => {
+    if (widgetContainerRef.current && !widgetContainerRef.current.querySelector("script[src*='trustindex']")) {
+      const script = document.createElement("script");
+      script.src = INSTAGRAM_SCRIPT_URL;
+      script.defer = true;
+      script.async = true;
+      widgetContainerRef.current.appendChild(script);
+    }
   }, []);
 
   return (
@@ -122,32 +133,24 @@ export default function DroneRealizationsPage() {
                 <Camera className="w-9 h-9 text-white" strokeWidth={1.5} />
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-6 sm:mb-8">
-                Realizacje z lotu drona
+              <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
+                {texts.drone_hero_title || "Realizacje z lotu drona"}
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8 sm:mb-10 max-w-3xl">
-                Prawdziwe ujęcia z gospodarstw i firm. Dron pomaga dokumentować stan upraw,
-                monitorować ryzyka i szybciej przeprowadzać proces po szkodzie.
+                {texts.drone_hero_desc || "Prawdziwe ujęcia z gospodarstw i firm. Dron pomaga dokumentować stan upraw, monitorować ryzyka."}
               </p>
 
-              <div className="flex flex-wrap gap-3">
-                
-
-                <Link
-                  to="/kontakt"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 text-white border border-white/25 hover:bg-white/15 transition"
-                >
-                  Poproś o wycenę <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
+             
             </div>
 
             <div className="lg:col-span-4 lg:flex lg:items-center">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl w-full">
-                <h3 className="text-white text-xl sm:text-2xl mb-3">Wyceń polisę online</h3>
+                <h3 className="text-white text-xl sm:text-2xl mb-3">
+                  {texts.drone_contact_title || "Wyceń polisę online"}
+                </h3>
                 <p className="text-white/80 leading-relaxed mb-7 sm:mb-8">
-                  20+ towarzystw w jednym miejscu. Szybka wycena, lokalna obsługa i pomoc w formalnościach.
+                  {texts.drone_contact_desc || "20+ towarzystw w jednym miejscu. Szybka wycena, lokalna obsługa i pomoc w formalnościach."}
                   <br />
                   <span className="inline-block mt-2 text-white/70">
                     Twój specjalista – Wojciech Kurzeja
@@ -156,11 +159,11 @@ export default function DroneRealizationsPage() {
 
                 <div className="space-y-3 sm:space-y-4">
                   <a
-                    href="tel:+48739079729"
+                    href={`tel:${phone.replace(/\s/g, "")}`}
                     className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] rounded-xl transition-all shadow-lg group"
                   >
                     <Phone className="w-5 h-5" />
-                    <span className="font-medium">739 079 729</span>
+                    <span className="font-medium">{phone}</span>
                     <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
                   </a>
 
@@ -195,123 +198,46 @@ export default function DroneRealizationsPage() {
             {/* 3 kafle – wszystko w nich */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               <FeatureCard
-                category="Rolnictwo & technologia"
-                title="Dlaczego dron w rolnictwie?"
+                category={texts.drone_feat_1_cat || "Rolnictwo & technologia"}
+                title={texts.drone_feat_1_title || "Dlaczego dron w rolnictwie?"}
                 Icon={Wheat}
-                description="Rolnictwo coraz częściej korzysta z nowoczesnych technologii. Dron to nie tylko efektowne ujęcia z powietrza – to praktyczne narzędzie, które pomaga dokumentować stan upraw, monitorować pola i maszyny oraz szybciej reagować na szkody spowodowane pogodą czy innymi zagrożeniami. Dzięki temu rolnik zyskuje realną wiedzę i kontrolę nad gospodarstwem."
+                description={texts.drone_feat_1_desc || "Rolnictwo coraz częściej korzysta z nowoczesnych technologii. Dron to nie tylko efektowne ujęcia z powietrza – to praktyczne narzędzie, które pomaga dokumentować stan upraw, monitorować pola i maszyny oraz szybciej reagować na szkody spowodowane pogodą czy innymi zagrożeniami. Dzięki temu rolnik zyskuje realną wiedzę i kontrolę nad gospodarstwem."}
               />
 
               <FeatureCard
-                category="Bezpieczniej i konkretniej"
-                title="Jak wspieramy Twoje ubezpieczenia"
+                category={texts.drone_feat_2_cat || "Bezpieczniej i konkretniej"}
+                title={texts.drone_feat_2_title || "Jak wspieramy Twoje ubezpieczenia"}
                 Icon={ShieldCheck}
-                description="Dokładne zdjęcia i nagrania z drona pozwalają lepiej ocenić ryzyka, które mogą wystąpić w gospodarstwie czy firmie. To bezpośrednio przekłada się na dobór odpowiedniej polisy i wysokość składki. Dzięki analizie z lotu ptaka pomagamy Ci uniknąć niedoszacowania wartości upraw lub maszyn, a w razie szkody – udokumentować sytuację i sprawniej przejść przez proces odszkodowawczy."
+                description={texts.drone_feat_2_desc || "Dokładne zdjęcia i nagrania z drona pozwalają lepiej ocenić ryzyka, które mogą wystąpić w gospodarstwie czy firmie. To bezpośrednio przekłada się na dobór odpowiedniej polisy i wysokość składki."}
               />
 
               <FeatureCard
-                category="Portfolio"
-                title="Zobacz nasze realizacje z lotu ptaka"
+                category={texts.drone_feat_3_cat || "Portfolio"}
+                title={texts.drone_feat_3_title || "Zobacz nasze realizacje z lotu ptaka"}
                 Icon={Video}
-                description="Nic nie przemawia lepiej niż obraz. Poniżej znajdziesz przykłady naszych nagrań i zdjęć wykonanych z drona w gospodarstwach rolnych i firmach."
-                actions={
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <a
-                      href={INSTAGRAM_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-2xl bg-[#2D7A5F] text-white px-6 py-3 font-medium hover:opacity-95 transition w-full"
-                    >
-                      Otwórz Instagram <ExternalLink className="w-4 h-4 ml-2" />
-                    </a>
-
-                    <a
-                      href={CONTACT_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-2xl bg-white border border-[#2D7A5F]/15 text-[#2D7A5F] px-6 py-3 hover:bg-[#2D7A5F]/5 transition w-full"
-                    >
-                      Zapytaj o współpracę <ArrowRight className="w-4 h-4 ml-2" />
-                    </a>
-                  </div>
-                }
+                description={texts.drone_feat_3_desc || "Nic nie przemawia lepiej niż obraz. Poniżej znajdziesz przykłady naszych nagrań i zdjęć wykonanych z drona w gospodarstwach rolnych i firmach."}
+                
               />
             </div>
 
-            {/* feed – bez dodatkowych “okienek tekstowych” pod spodem */}
-            <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
-              <div className="flex items-start gap-4">
+            {/* SEKCJA FEED Z INSTAGRAMA (WIDGET TRUSTINDEX) */}
+            <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10 animate-in fade-in zoom-in duration-500">
+              {/* ZMIANA TUTAJ: flex-col na mobilnym, flex-row na większym, centrowanie na mobilnym */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
                 <div className="shrink-0 w-12 h-12 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 flex items-center justify-center">
                   <Sparkles className="w-6 h-6 text-[#2D7A5F]" />
                 </div>
 
                 <div className="min-w-0 w-full">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
-                    <h3 className="text-xl sm:text-2xl text-[#1A1A1A]">Najnowsze ujęcia</h3>
-
-                    <a
-                      href={INSTAGRAM_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#2D7A5F]/10 text-[#2D7A5F] px-4 py-2 hover:bg-[#2D7A5F]/15 transition"
-                    >
-                      Zobacz wszystkie <ExternalLink className="w-4 h-4" />
-                    </a>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 flex-wrap">
+                    <h3 className="text-xl sm:text-2xl text-[#1A1A1A]">
+                      {texts.drone_insta_title || "Najnowsze ujęcia"}
+                    </h3>
                   </div>
 
-                  <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
-                    {igLoading
-                      ? Array.from({ length: 9 }).map((_, i) => (
-                          <div
-                            key={`sk-${i}`}
-                            className="aspect-square rounded-2xl bg-[#2D7A5F]/8 border border-[#2D7A5F]/12 animate-pulse"
-                          />
-                        ))
-                      : igItems.length > 0
-                      ? igItems.map((item) => {
-                          const src =
-                            item.media_type === "VIDEO"
-                              ? item.thumbnail_url || item.media_url
-                              : item.media_url;
-
-                          return (
-                            <a
-                              key={item.id}
-                              href={item.permalink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group relative aspect-square rounded-2xl overflow-hidden border border-[#2D7A5F]/12 bg-[#2D7A5F]/5"
-                              title={item.caption || "Instagram post"}
-                            >
-                              {src ? (
-                                <img
-                                  src={src}
-                                  alt={item.caption ? item.caption.slice(0, 80) : "Instagram"}
-                                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center text-[#2D7A5F]/60">
-                                  <Sparkles className="w-6 h-6" />
-                                </div>
-                              )}
-
-                              {item.media_type === "VIDEO" ? (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                                    <Play className="w-5 h-5 text-white" />
-                                  </div>
-                                </div>
-                              ) : null}
-                            </a>
-                          );
-                        })
-                      : Array.from({ length: 9 }).map((_, i) => (
-                          <div
-                            key={`ph-${i}`}
-                            className="aspect-square rounded-2xl bg-[#2D7A5F]/8 border border-[#2D7A5F]/12"
-                            aria-label="Placeholder realizacji"
-                          />
-                        ))}
+                  {/* KONTENER NA SKRYPT - DODAŁEM overflow-hidden i w-full */}
+                  <div className="mt-6 w-full flex justify-center overflow-hidden" ref={widgetContainerRef}>
+                     {/* Trustindex wstrzyknie feed tutaj automatycznie */}
                   </div>
                 </div>
               </div>
@@ -324,12 +250,10 @@ export default function DroneRealizationsPage() {
 
               <div className="relative text-center">
                 <h2 className="text-2xl sm:text-3xl text-white">
-                  Uzyskaj indywidualną ofertę ubezpieczeniową
+                  {texts.drone_cta_title || "Uzyskaj indywidualną ofertę ubezpieczeniową"}
                 </h2>
                 <p className="mt-3 text-white/85">
-                  <strong>
-                    Skontaktuj się z nami już dziś, aby zapewnić sobie i swoim bliskim maksimum bezpieczeństwa.
-                  </strong>
+                   {texts.drone_cta_desc || "Skontaktuj się z nami już dziś, aby zapewnić sobie i swoim bliskim maksimum bezpieczeństwa."}
                 </p>
 
                 <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
@@ -342,16 +266,14 @@ export default function DroneRealizationsPage() {
                     Zamów darmową wycenę <ArrowRight className="w-4 h-4 ml-2" />
                   </a>
                   <a
-                    href="tel:+48739079729"
+                    href={`tel:${phone.replace(/\s/g, "")}`}
                     className="inline-flex items-center justify-center rounded-2xl bg-white/10 text-white border border-white/25 px-7 py-4 hover:bg-white/15 transition"
                   >
-                    Zadzwoń: 739 079 729
+                    Zadzwoń: {phone}
                   </a>
                 </div>
               </div>
             </div>
-
-            
           </div>
         </div>
       </section>

@@ -16,6 +16,11 @@ import {
   Shield,
 } from "lucide-react";
 
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+// TUTAJ WPISAŁEM TWOJE ID STRONY Z WORDPRESSA:
+const BLOG_PAGE_ID = 2700; 
+
 type WpPost = {
   id: number;
   slug: string;
@@ -31,15 +36,28 @@ type WpPost = {
 
 type PostCard = {
   id: string;
-  slug: string; // NEW
+  slug: string;
   title: string;
   excerpt: string;
   dateISO: string;
-  wpHref: string; // NEW (zamiast href do klikania)
+  wpHref: string;
   image?: string | null;
+  text: string;
 };
 
-const WP_BASE = "https://www.opolskieubezpieczenia.pl";
+// Typ dla pól edytowalnych z ACF
+type BlogPageACF = {
+  blog_hero_title?: string;
+  blog_hero_desc?: string;
+  blog_hero_btn?: string;
+  blog_cta_title?: string;
+  blog_cta_desc?: string;
+  blog_phone?: string;
+  blog_email_btn?: string;
+  blog_list_title?: string;
+  blog_list_desc?: string;
+  blog_search_placeholder?: string;
+};
 
 const TOPICS = ["Wszystkie", "OC/AC", "Dom", "Życie", "Turystyka", "Rolne"] as const;
 type Topic = (typeof TOPICS)[number];
@@ -47,6 +65,15 @@ type Topic = (typeof TOPICS)[number];
 const PAGE_SIZE = 9;
 
 // --- helpers ---
+
+const fixImgUrl = (url?: string | null) => {
+  if (!url) return null;
+  if (url.includes('/wp-content/') && !url.includes('/wp/wp-content/')) {
+    return url.replace('/wp-content/', '/wp/wp-content/');
+  }
+  return url;
+};
+
 const stripHtml = (html: string) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
@@ -107,25 +134,23 @@ const parseFirstImageFromHtml = (html?: string) => {
 };
 
 export default function BlogPage() {
+  // Stan dla postów
   const [featured, setFeatured] = useState<PostCard | null>(null);
-
-  // to są TYLKO posty do siatki (9 szt), z pominięciem featured
   const [pagePosts, setPagePosts] = useState<PostCard[]>([]);
-
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingPage, setLoadingPage] = useState(true);
   const loading = loadingFeatured || loadingPage;
-
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState<number | null>(null);
-
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState<Topic>("Wszystkie");
 
-  const inferTopic = (p: Pick<PostCard, "title" | "excerpt">): Exclude<Topic, "Wszystkie"> => {
-    const t = `${p.title} ${p.excerpt}`.toLowerCase();
+  // NOWE: Stan dla tekstów edytowalnych (ACF)
+  const [texts, setTexts] = useState<BlogPageACF>({});
+
+  const inferTopic = (p: Pick<PostCard, "title" | "excerpt" | "text">): Exclude<Topic, "Wszystkie"> => {
+    const t = `${p.title} ${p.excerpt} ${p.text}`.toLowerCase();
     if (/(upraw|roln|gospodar|kombajn|agro|dopłat|doplat)/.test(t)) return "Rolne";
     if (/(turyst|wyjazd|wakac|podróż|podroz|travel)/.test(t)) return "Turystyka";
     if (/(mieszkan|dom|nieruch|lokal|mury|wyposaż|wyposaz|zalanie|pożar|pozar)/.test(t)) return "Dom";
@@ -183,49 +208,62 @@ export default function BlogPage() {
   const mapWp = (p: WpPost): PostCard => {
     const title = decodeHtml(p.title?.rendered ?? "");
     const excerpt = decodeHtml(stripHtml(p.excerpt?.rendered ?? ""));
-    const featuredImg = p._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
-    const inContent = parseFirstImageFromHtml(p.content?.rendered);
+    const text = decodeHtml(stripHtml(p.content?.rendered ?? ""));
+    
+    const rawFeaturedImg = p._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
+    const featuredImg = fixImgUrl(rawFeaturedImg);
+    
+    const rawInContent = parseFirstImageFromHtml(p.content?.rendered);
+    const inContent = fixImgUrl(rawInContent);
+    
     const image = featuredImg || inContent || null;
 
     return {
       id: String(p.id),
-      slug: p.slug, // NEW
+      slug: p.slug,
       title,
       excerpt,
       dateISO: p.date,
-      wpHref: p.link, // NEW
+      wpHref: p.link,
       image,
+      text,
     };
   };
 
-  // 1) zawsze pobieramy JEDEN najnowszy wpis (featured) + total count
+  // 0) NOWE: Pobieranie tekstów z ACF (dla strony kontenera - ID 2700)
+  useEffect(() => {
+    const fetchTexts = async () => {
+      try {
+        const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_PAGE_ID}?_fields=acf`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.acf) {
+          setTexts(json.acf);
+        }
+      } catch (e) {
+        console.error("Błąd pobierania tekstów ACF", e);
+      }
+    };
+    fetchTexts();
+  }, []);
+
+  // 1) Pobieranie FEATURED
   useEffect(() => {
     let aborted = false;
-
     const run = async () => {
       setLoadingFeatured(true);
       setErrorMsg(null);
-
       try {
-        const url =
-          `${WP_BASE}/wp-json/wp/v2/posts` +
-          `?per_page=1&page=1&_embed=1` +
-          `&_fields=id,slug,date,link,title,excerpt,content,_embedded`;
-
+        const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=1&page=1&_embed=true`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`WP error: ${res.status}`);
-
         const totalStr = res.headers.get("X-WP-Total");
         const total = totalStr ? Number(totalStr) : null;
-
         const data = (await res.json()) as WpPost[];
         const first = data?.[0] ? mapWp(data[0]) : null;
-
         if (aborted) return;
-
         setFeatured(first);
-
-        // pagination liczymy po postach "poza featured"
         if (total && Number.isFinite(total)) {
           const remaining = Math.max(0, total - 1);
           const pages = Math.max(1, Math.ceil(remaining / PAGE_SIZE));
@@ -238,129 +276,123 @@ export default function BlogPage() {
         if (aborted) return;
         setFeatured(null);
         setTotalPages(null);
-        setErrorMsg("Nie udało się pobrać wpisów z WordPressa. Sprawdź REST API / CORS.");
       } finally {
         if (!aborted) setLoadingFeatured(false);
       }
     };
-
     run();
-    return () => {
-      aborted = true;
-    };
+    return () => { aborted = true; };
   }, []);
 
-  // 2) pobieramy 9 wpisów do siatki, ale z offsetem pomijającym featured
+  // 2) Pobieranie LISTY (offset 1)
   useEffect(() => {
     let aborted = false;
-
     const run = async () => {
       setLoadingPage(true);
-      setErrorMsg(null);
-
       try {
         const offset = 1 + (page - 1) * PAGE_SIZE;
-
-        const url =
-          `${WP_BASE}/wp-json/wp/v2/posts` +
-          `?per_page=${PAGE_SIZE}&offset=${offset}&_embed=1` +
-          `&_fields=id,slug,date,link,title,excerpt,content,_embedded`;
-
+        const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=${PAGE_SIZE}&offset=${offset}&_embed=true`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`WP error: ${res.status}`);
-
         const data = (await res.json()) as WpPost[];
         const mapped = data.map(mapWp);
-
         if (aborted) return;
         setPagePosts(mapped);
-      } catch {
+      } catch (err: any) {
         if (aborted) return;
         setPagePosts([]);
-        setErrorMsg("Nie udało się pobrać wpisów z WordPressa. Sprawdź REST API / CORS.");
+        setErrorMsg(err.message || "Błąd pobierania wpisów.");
       } finally {
         if (!aborted) setLoadingPage(false);
       }
     };
-
     run();
-    return () => {
-      aborted = true;
-    };
+    return () => { aborted = true; };
   }, [page]);
 
-  // jak zmieniasz filtr/szukaj, wracaj na stronę 1
   useEffect(() => {
     setPage((p) => (p === 1 ? p : 1));
   }, [topic, query]);
 
+  // --- LOGIKA WYSZUKIWANIA ---
   const filteredGrid = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    return pagePosts.filter((p) => {
-      const hay = `${p.title} ${p.excerpt}`.toLowerCase();
-      const matchesQuery = !q || hay.includes(q);
+    let allPosts = [...pagePosts];
+    if (featured) {
+      if (!allPosts.find(p => p.id === featured.id)) {
+        allPosts = [featured, ...allPosts];
+      }
+    }
 
+    return allPosts.filter((p) => {
+      const hay = `${p.title} ${p.excerpt} ${p.text}`.toLowerCase();
+      const matchesQuery = !q || hay.includes(q);
       const inferred = inferTopic(p);
       const matchesTopic = topic === "Wszystkie" || inferred === topic;
-
       return matchesQuery && matchesTopic;
     });
-  }, [pagePosts, query, topic]);
+  }, [featured, pagePosts, query, topic]);
 
-  // Featured tylko bez filtrów
-  const showFeatured = !!featured && topic === "Wszystkie" && query.trim() === "";
+  const isFiltering = topic !== "Wszystkie" || query.trim() !== "";
+  const showFeaturedBlock = !!featured && !isFiltering;
+
+  const postsToRender = showFeaturedBlock 
+    ? filteredGrid.filter(p => p.id !== featured?.id) 
+    : filteredGrid;
 
   return (
     <main className="bg-[#F5F1E8]">
       {/* HERO */}
+     {/* HERO */}
       <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
-        {/* dekoracje */}
         <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
         <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
         <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
         <div className="pointer-events-none absolute bottom-20 left-16 sm:left-36 w-16 h-16 sm:w-24 sm:h-24 border-4 border-white/10 rotate-12" />
 
         <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
+          {/* ZMIANA: items-start zamiast items-stretch, aby układ był jak w O Nas */}
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-start">
             <div className="lg:col-span-8 max-w-4xl">
               <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 sm:mb-8 border border-white/20">
                 <Newspaper className="w-9 h-9 text-white" strokeWidth={1.5} />
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-6 sm:mb-8">
-                Porady ubezpieczeniowe
+              {/* EDYTOWALNE: Tytuł - klasy wielkości dopasowane do O Nas */}
+              <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-6 sm:mb-8">
+                {texts.blog_hero_title || "Porady ubezpieczeniowe"}
               </h1>
 
-              <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8 sm:mb-10 max-w-3xl">
-                Krótkie wyjaśnienia i praktyczne wskazówki, które pomagają lepiej zrozumieć polisy i
-                świadomie wybierać ochronę.
+              {/* EDYTOWALNE: Opis */}
+              <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8 sm:mb-10 max-w-3xl whitespace-pre-wrap">
+                {texts.blog_hero_desc || "Krótkie wyjaśnienia i praktyczne wskazówki, które pomagają lepiej zrozumieć polisy i świadomie wybierać ochronę."}
               </p>
 
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  to="/kalkulator"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-[#2D7A5F] shadow-sm hover:bg-[#F5F1E8] transition"
-                >
-                  Zobacz kalkulatory <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
+              
             </div>
 
-            <div className="lg:col-span-4 lg:flex lg:items-center">
+            {/* ZMIANA: Usunięto lg:flex lg:items-center - kafelek teraz jest u góry */}
+            <div className="lg:col-span-4">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl w-full">
-                <h3 className="text-white text-xl sm:text-2xl mb-3">Wyceń polisę online</h3>
+                {/* EDYTOWALNE: CTA Tytuł */}
+                <h3 className="text-white text-xl sm:text-2xl mb-3">
+                  {texts.blog_cta_title || "Wyceń polisę online"}
+                </h3>
+                
+                {/* EDYTOWALNE: CTA Opis */}
                 <p className="text-white/80 leading-relaxed mb-7 sm:mb-8">
-                  20+ towarzystw w jednym miejscu, szybka wycena, lokalna obsługa i pomoc w formalnościach.
+                  {texts.blog_cta_desc || "20+ towarzystw w jednym miejscu, szybka wycena, lokalna obsługa i pomoc w formalnościach."}
                 </p>
 
                 <div className="space-y-3 sm:space-y-4">
                   <a
-                    href="tel:+48739079729"
+                    href={`tel:${(texts.blog_phone || "739079729").replace(/\s/g, "")}`}
                     className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] rounded-xl transition-all shadow-lg group"
                   >
                     <Phone className="w-5 h-5" />
-                    <span className="font-medium">739 079 729</span>
+                    {/* EDYTOWALNE: Telefon */}
+                    <span className="font-medium">{texts.blog_phone || "739 079 729"}</span>
                     <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
                   </a>
 
@@ -371,7 +403,8 @@ export default function BlogPage() {
                     className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-transparent hover:bg-white/10 text-white border border-white/30 rounded-xl transition-all"
                   >
                     <Mail className="w-5 h-5" />
-                    <span>Skontaktuj się z nami</span>
+                    {/* EDYTOWALNE: Email btn */}
+                    <span>{texts.blog_email_btn || "Skontaktuj się z nami"}</span>
                   </a>
                 </div>
               </div>
@@ -382,13 +415,11 @@ export default function BlogPage() {
 
       {/* LISTA */}
       <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
-        {/* dekoracje */}
         <div className="pointer-events-none absolute top-10 left-1/4 w-24 h-24 bg-[#2D7A5F]/5 rounded-full" />
         <div className="pointer-events-none absolute top-32 right-1/3 w-16 h-16 bg-[#2D7A5F]/5 rotate-45" />
         <div className="pointer-events-none absolute bottom-20 right-1/4 w-32 h-32 bg-[#2D7A5F]/5 rounded-full" />
 
         <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
-          {/* header + search */}
           <div className="mb-10 sm:mb-14 lg:mb-16">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
               <div className="max-w-2xl">
@@ -399,12 +430,16 @@ export default function BlogPage() {
                   </span>
                 </div>
 
-                <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-3">Najnowsze artykuły</h2>
+                {/* EDYTOWALNE: Lista Tytuł */}
+                <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-3">
+                  {texts.blog_list_title || "Najnowsze artykuły"}
+                </h2>
+                {/* EDYTOWALNE: Lista Opis */}
                 <p className="text-base sm:text-lg text-[#6B6B6B]">
-                  Szukaj po temacie lub użyj filtrowania — znajdziesz dokładnie to, czego potrzebujesz.
+                  {texts.blog_list_desc || "Szukaj po temacie lub użyj filtrowania — znajdziesz dokładnie to, czego potrzebujesz."}
                 </p>
 
-                {errorMsg && <p className="mt-3 text-sm text-[#6B6B6B]">{errorMsg}</p>}
+                {errorMsg && <p className="mt-3 text-sm text-red-500 bg-red-50 p-2 rounded-lg border border-red-100">{errorMsg}</p>}
               </div>
 
               <div className="w-full md:w-[420px]">
@@ -413,7 +448,8 @@ export default function BlogPage() {
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Szukaj w poradach…"
+                    // EDYTOWALNE: Placeholder
+                    placeholder={texts.blog_search_placeholder || "Szukaj w poradach…"}
                     className="w-full bg-transparent outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]"
                     aria-label="Szukaj wpisów na blogu"
                   />
@@ -441,10 +477,10 @@ export default function BlogPage() {
             </div>
           </div>
 
-          {/* MAGAZYN: featured + grid */}
           {loading ? (
             <>
-              {!!showFeatured && (
+              {/* Szkielet ładowania */}
+              {!!showFeaturedBlock && (
                 <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-[#2D7A5F]/10 animate-pulse mb-8">
                   <div className="aspect-[16/9] w-full bg-[#2D7A5F]/10 rounded-2xl mb-4" />
                   <div className="h-7 bg-[#2D7A5F]/10 rounded-xl mb-2 w-3/4" />
@@ -469,8 +505,8 @@ export default function BlogPage() {
             </>
           ) : (
             <>
-              {/* FEATURED */}
-              {showFeatured && featured && (() => {
+              {/* FEATURED: Pokazujemy TYLKO gdy nie ma filtrowania */}
+              {showFeaturedBlock && featured && (() => {
                 const ft = inferTopic(featured);
                 const Icon = topicIcon(ft);
 
@@ -517,14 +553,14 @@ export default function BlogPage() {
               })()}
 
               {/* GRID */}
-              {filteredGrid.length === 0 ? (
+              {postsToRender.length === 0 ? (
                 <div className="bg-white rounded-3xl p-8 shadow-lg border border-[#2D7A5F]/10">
                   <div className="text-lg text-[#1A1A1A] mb-2">Brak wyników</div>
                   <div className="text-[#6B6B6B]">Zmień frazę lub wybierz inny temat.</div>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
-                  {filteredGrid.map((p) => {
+                  {postsToRender.map((p) => {
                     const t = inferTopic(p);
                     const Icon = topicIcon(t);
 
@@ -578,8 +614,8 @@ export default function BlogPage() {
             </>
           )}
 
-          {/* PAGINACJA */}
-          {!loading && totalPages && totalPages > 1 && (
+          {/* PAGINACJA: Ukrywamy jeśli filtrujemy, bo filtrujemy tylko załadowane posty */}
+          {!loading && !isFiltering && totalPages && totalPages > 1 && (
             <div className="mt-10 flex items-center justify-center gap-3">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}

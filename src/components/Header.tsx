@@ -1,7 +1,10 @@
 import { Phone, ChevronDown, Menu, X } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 
+// --- KONFIGURACJA ---
+const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
+const GLOBAL_SETTINGS_ID = 2756;
 
 const ofertaItems = [
   { label: "Ubezpieczenia komunikacyjne", slug: "ubezpieczenia-komunikacyjne" },
@@ -12,31 +15,113 @@ const ofertaItems = [
   { label: "Ubezpieczenia rolne", slug: "ubezpieczenia-rolne" },
 ];
 
-export function Header() {
-  const [showOfertaMenu, setShowOfertaMenu] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const kredytyItems = [
+  { label: "Kredyty hipoteczne", slug: "kredyty-hipoteczne" },
+  { label: "Kredyty gotówkowe", slug: "kredyty-gotowkowe" },
+  { label: "Kredyty konsolidacyjne", slug: "kredyty-konsolidacyjne" },
+  { label: "Kredyty samochodowe", slug: "kredyty-samochodowe" },
+];
 
-  const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
+const kalkulatoryItems = [
+  { label: "Kalkulator ubezpieczeń", to: "/kalkulator" },
+  { label: "Kalkulator kredytowy", to: "/kalkulator-kredytowy" },
+];
+
+// --- HOOK DO DROPDOWN ---
+function useDropdown() {
+  const [open, setOpen] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  const onEnter = () => {
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+
+  const onLeave = () => {
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(() => setOpen(false), 160);
+  };
+
+  const close = () => setOpen(false);
+  const toggle = () => setOpen((p) => !p);
+
+  return { open, onEnter, onLeave, close, toggle };
+}
+
+export function Header() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [global, setGlobal] = useState<any>({});
+
+  // Dropdowny (mobile)
+  const [mobileOferta, setMobileOferta] = useState(false);
+  const [mobileKredyty, setMobileKredyty] = useState(false);
+  const [mobileKalkulatory, setMobileKalkulatory] = useState(false);
+
+  // Dropdowny (desktop)
+  const oferta = useDropdown();
+  const kredyty = useDropdown();
+  const kalkulatory = useDropdown();
+
+  useEffect(() => {
+    const fetchGlobal = async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setGlobal(json.acf);
+        }
+      } catch (e) {
+        console.error("Header global settings error:", e);
+      }
+    };
+    fetchGlobal();
+  }, []);
+
+  const logoUrl = global.header_logo || "/logo-opolskie-ubezpiecznia.png";
+  const phone = global.global_phone || "739 079 729";
+  const phoneLink = `tel:${phone.replace(/\s/g, "")}`;
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-    setShowOfertaMenu(false);
+    setMobileOferta(false);
+    setMobileKredyty(false);
+    setMobileKalkulatory(false);
   };
 
-  const closeTimeoutRef = useRef<number | null>(null);
+  // Komponent dropdownu desktop
+  const DesktopDropdown = ({
+    label,
+    linkTo,
+    hook,
+    children,
+  }: {
+    label: string;
+    linkTo: string;
+    hook: ReturnType<typeof useDropdown>;
+    children: React.ReactNode;
+  }) => (
+    <div className="relative" onMouseEnter={hook.onEnter} onMouseLeave={hook.onLeave}>
+      <Link
+        to={linkTo}
+        className="flex items-center gap-1.5 text-[#2D7A5F] hover:text-[#1F5A43] transition-colors"
+        onClick={hook.close}
+      >
+        <span>{label}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${hook.open ? "rotate-180" : ""}`} />
+      </Link>
 
-const openOferta = () => {
-  if (closeTimeoutRef.current) window.clearTimeout(closeTimeoutRef.current);
-  setShowOfertaMenu(true);
-};
-
-const scheduleCloseOferta = () => {
-  if (closeTimeoutRef.current) window.clearTimeout(closeTimeoutRef.current);
-  closeTimeoutRef.current = window.setTimeout(() => {
-    setShowOfertaMenu(false);
-  }, 160); // krótko, żeby nie "migało"
-};
-
+      {hook.open && (
+        <div
+          className="absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden"
+          onMouseEnter={hook.onEnter}
+          onMouseLeave={hook.onLeave}
+        >
+          <div className="absolute -top-2 left-0 right-0 h-2" />
+          <div className="p-3">{children}</div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F5F1E8]/95 backdrop-blur-md border-b border-[#2D7A5F]/15 shadow-sm">
@@ -45,75 +130,65 @@ const scheduleCloseOferta = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/#top" onClick={closeMobileMenu} className="flex items-center gap-3">
-              <img
-                src="/logo-opolskie-ubezpiecznia.png"
-                alt="Opolskie Ubezpieczenia"
-                className="h-10 sm:h-12 md:h-14 w-auto"
-              />
+              <img src={logoUrl} alt="Opolskie Ubezpieczenia" className="h-10 sm:h-12 md:h-14 w-auto" />
             </Link>
           </div>
 
-          {/* Desktop navigation */}
-          <nav className="hidden lg:flex items-center gap-8 xl:gap-10 text-[15px]">
-            <Link to="/" className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors">
-              Strona główna
-            </Link>
+          {/* ═══ Desktop navigation ═══ */}
+          <nav className="hidden lg:flex items-center gap-8 xl:gap-8 text-[15px]">
+            {/* Oferta */}
+            <DesktopDropdown label="Oferta" linkTo="/#oferta" hook={oferta}>
+              {ofertaItems.map((item) => (
+                <Link
+                  key={item.slug}
+                  to={`/oferta/${item.slug}`}
+                  className="block px-5 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/5 rounded-xl transition-colors"
+                  onClick={oferta.close}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </DesktopDropdown>
 
-            <div
-  className="relative"
-  onMouseEnter={openOferta}
-  onMouseLeave={scheduleCloseOferta}
->
-  <Link
-    to="/#oferta"
-    className="flex items-center gap-2 text-[#2D7A5F] hover:text-[#1F5A43] transition-colors"
-    onClick={() => setShowOfertaMenu(false)}
-  >
-    <span>Oferta</span>
-    <ChevronDown
-      className={`w-4 h-4 transition-transform ${showOfertaMenu ? "rotate-180" : ""}`}
-    />
-  </Link>
+            {/* Kredyty */}
+            <DesktopDropdown label="Kredyty" linkTo="/kredyty" hook={kredyty}>
+              {kredytyItems.map((item) => (
+                <Link
+                  key={item.slug}
+                  to={`/kredyty/${item.slug}`}
+                  className="block px-5 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/5 rounded-xl transition-colors"
+                  onClick={kredyty.close}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </DesktopDropdown>
 
-  {showOfertaMenu && (
-    <div
-      className="absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden"
-      onMouseEnter={openOferta}
-      onMouseLeave={scheduleCloseOferta}
-    >
-      {/* “mostek” – niewidzialny pasek, żeby nie było przerwy hover */}
-      <div className="absolute -top-2 left-0 right-0 h-2" />
+            {/* Kalkulatory */}
+            <DesktopDropdown label="Kalkulatory" linkTo="/kalkulator" hook={kalkulatory}>
+              {kalkulatoryItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="block px-5 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/5 rounded-xl transition-colors"
+                  onClick={kalkulatory.close}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </DesktopDropdown>
 
-      <div className="p-3">
-        {ofertaItems.map((item) => (
-          <Link
-            key={item.slug}
-            to={`/oferta/${item.slug}`}
-            className="block px-5 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/5 rounded-xl transition-colors"
-            onClick={() => setShowOfertaMenu(false)}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </div>
-    </div>
-  )}
-</div>
-
-
-            {/* Te sekcje są na stronie głównej, więc używamy Link /#... */}
             <Link to="/o-nas" className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors">
-  O nas
-</Link>
-<Link to="/kalkulator" className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors">
-  Kalkulator ubezpieczeń
-</Link>
-
+              O nas
+            </Link>
             <Link to="/blog" className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors">
               Blog
             </Link>
             <Link to="/realizacje-z-lotu-drona" className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors">
               Realizacje z lotu drona
+            </Link>
+            <Link to="/rejestracja-pojazdow" className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors">
+              Rejestracja pojazdów
             </Link>
             <Link to="/kontakt" className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors">
               Kontakt
@@ -122,70 +197,49 @@ const scheduleCloseOferta = () => {
 
           {/* Desktop CTA */}
           <a
-            href="tel:739079729"
-            className="hidden md:inline-flex items-center gap-3 bg-[#2D7A5F] hover:bg-[#1F5A43] text-white px-6 md:px-8 py-3 md:py-4 rounded-xl transition-all shadow-lg shadow-[#2D7A5F]/20 lg:ml-4"
+            href={phoneLink}
+            className="hidden lg:inline-flex items-center gap-3 bg-[#2D7A5F] hover:bg-[#1F5A43] text-white px-6 md:px-8 py-3 md:py-4 rounded-xl transition-all shadow-lg shadow-[#2D7A5F]/20 lg:ml-4"
           >
             <Phone className="w-5 h-5" />
-            <span className="text-sm md:text-lg">739 079 729</span>
+            <span className="text-sm md:text-lg">{phone}</span>
           </a>
 
           {/* Mobile controls */}
           <div className="flex items-center gap-3 lg:hidden">
             <a
-              href="tel:739079729"
+              href={phoneLink}
               className="inline-flex items-center justify-center rounded-full border border-[#2D7A5F]/30 bg-white/70 px-3 py-2 text-[#2D7A5F] text-sm shadow-sm"
               aria-label="Zadzwoń do nas"
             >
               <Phone className="w-4 h-4" />
             </a>
-
             <button
               type="button"
-              onClick={toggleMobileMenu}
+              onClick={() => setIsMobileMenuOpen((p) => !p)}
               className="inline-flex items-center justify-center rounded-full border border-[#2D7A5F]/30 bg-white/80 p-2 shadow-sm"
               aria-label="Otwórz menu"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5 text-[#2D7A5F]" />
-              ) : (
-                <Menu className="w-5 h-5 text-[#2D7A5F]" />
-              )}
+              {isMobileMenuOpen ? <X className="w-5 h-5 text-[#2D7A5F]" /> : <Menu className="w-5 h-5 text-[#2D7A5F]" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile menu panel */}
+        {/* ═══ Mobile menu ═══ */}
         {isMobileMenuOpen && (
           <div className="mt-4 lg:hidden rounded-3xl border border-[#2D7A5F]/12 bg-white shadow-2xl overflow-hidden">
             <nav className="flex flex-col text-[15px] divide-y divide-[#2D7A5F]/8">
-              <Link
-                to="/"
-                onClick={closeMobileMenu}
-                className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
-              >
-                Strona główna
-              </Link>
-
-              {/* Oferta (mobile): klik "Oferta" -> scroll do sekcji, chevron -> rozwija listę podstron */}
+              {/* Oferta */}
               <div className="flex flex-col">
                 <button
                   type="button"
-                  onClick={() => setShowOfertaMenu((prev) => !prev)}
+                  onClick={() => setMobileOferta((p) => !p)}
                   className="flex items-center justify-between px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
                 >
                   <span>Oferta</span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform ${showOfertaMenu ? "rotate-180" : ""}`}
-                  />
+                  <ChevronDown className={`w-4 h-4 transition-transform ${mobileOferta ? "rotate-180" : ""}`} />
                 </button>
-
-                
-
-                {showOfertaMenu && (
+                {mobileOferta && (
                   <div className="bg-[#F5F1E8]/70 pb-2">
-                    
-
-                    {/* linki do podstron szczegółów */}
                     {ofertaItems.map((item) => (
                       <Link
                         key={item.slug}
@@ -200,39 +254,71 @@ const scheduleCloseOferta = () => {
                 )}
               </div>
 
-              <Link
-                to="/o-nas"
-                onClick={closeMobileMenu}
-                className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
-              >
+              {/* Kredyty */}
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => setMobileKredyty((p) => !p)}
+                  className="flex items-center justify-between px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
+                >
+                  <span>Kredyty</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${mobileKredyty ? "rotate-180" : ""}`} />
+                </button>
+                {mobileKredyty && (
+                  <div className="bg-[#F5F1E8]/70 pb-2">
+                    {kredytyItems.map((item) => (
+                      <Link
+                        key={item.slug}
+                        to={`/kredyty/${item.slug}`}
+                        onClick={closeMobileMenu}
+                        className="block pl-8 pr-4 py-2.5 text-sm text-[#2D7A5F] hover:bg-[#2D7A5F]/8 transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Kalkulatory */}
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => setMobileKalkulatory((p) => !p)}
+                  className="flex items-center justify-between px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
+                >
+                  <span>Kalkulatory</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${mobileKalkulatory ? "rotate-180" : ""}`} />
+                </button>
+                {mobileKalkulatory && (
+                  <div className="bg-[#F5F1E8]/70 pb-2">
+                    {kalkulatoryItems.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={closeMobileMenu}
+                        className="block pl-8 pr-4 py-2.5 text-sm text-[#2D7A5F] hover:bg-[#2D7A5F]/8 transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Link to="/o-nas" onClick={closeMobileMenu} className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors">
                 O nas
               </Link>
-              <Link
-                to="/kalkulator"
-                onClick={closeMobileMenu}
-                className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
-              >
-                Kalkulator ubezpieczeń
-              </Link>
-              <Link
-                to="/blog"
-                onClick={closeMobileMenu}
-                className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
-              >
+              <Link to="/blog" onClick={closeMobileMenu} className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors">
                 Blog
               </Link>
-              <Link
-                to="/realizacje-z-lotu-drona"
-                onClick={closeMobileMenu}
-                className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
-              >
+              <Link to="/realizacje-z-lotu-drona" onClick={closeMobileMenu} className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors">
                 Realizacje z lotu drona
               </Link>
-              <Link
-                to="/kontakt"
-                onClick={closeMobileMenu}
-                className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
-              >
+              <Link to="/rejestracja-pojazdow" onClick={closeMobileMenu} className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors">
+                Rejestracja pojazdów
+              </Link>
+              <Link to="/kontakt" onClick={closeMobileMenu} className="px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors">
                 Kontakt
               </Link>
             </nav>

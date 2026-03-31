@@ -47,6 +47,7 @@ export function Hero() {
 
           </div>
 
+
           {/* Right: Contact card */}
           <div className="flex justify-end">
             <div className="bg-[#152238] border border-[#1f3354] rounded-xl p-8 shadow-lg w-full max-w-md">
