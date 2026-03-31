@@ -1,9 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   Calculator,
-  Phone,
-  Mail,
   ArrowRight,
   BarChart3,
   Home,
@@ -106,6 +104,10 @@ const LENDI_WIDGETS = [
   },
 ];
 
+// Wyciągamy typ dla ACF i Global poza użycie zmiennych `any`
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
+
 // --- Widżet w modalu (lazy) ---
 function LendiWidgetEmbed({ widgetHtml, height }: { widgetHtml: string; height: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,7 +130,7 @@ function LendiWidgetEmbed({ widgetHtml, height }: { widgetHtml: string; height: 
 }
 
 // --- Modal ---
-function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[number]; acf: any; onClose: () => void }) {
+function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[number]; acf: AcfData | null; onClose: () => void }) {
   const title = acf?.[widget.acfTitleField] || widget.defaultTitle;
 
   useEffect(() => {
@@ -139,10 +141,10 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-20 sm:pt-24 px-4 pb-4">
+    <div className="fixed inset-0 z-100 flex items-start justify-center pt-20 sm:pt-24 px-4 pb-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-5xl max-h-[calc(100vh-6rem)] bg-white rounded-3xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-[#2D7A5F]/10 bg-[#F5F1E8] flex-shrink-0">
+        <div className="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-[#2D7A5F]/10 bg-[#F5F1E8] shrink-0">
           <h3 className="text-lg sm:text-xl text-[#1A1A1A] font-medium">{title}</h3>
           <button onClick={onClose} className="w-9 h-9 rounded-full bg-white border border-[#2D7A5F]/10 flex items-center justify-center hover:bg-[#2D7A5F]/5 transition-colors cursor-pointer">
             <X className="w-5 h-5 text-[#2D7A5F]" />
@@ -158,15 +160,15 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
 
 const clampStyle = (lines: number): React.CSSProperties => ({
   display: "-webkit-box",
-  WebkitLineClamp: lines as any,
+  WebkitLineClamp: lines as "unset", // mały trik dla typowania WebkitLineClamp
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 });
 
 // --- GŁÓWNY KOMPONENT ---
 export default function CreditCalculatorPage() {
-  const [acf, setAcf] = useState<any>(null);
-  const [global, setGlobal] = useState<any>({});
+  const [acf, setAcf] = useState<AcfData | null>(null);
+  const [global, setGlobal] = useState<GlobalData>({});
   const [openWidgetId, setOpenWidgetId] = useState<string | null>(null);
 
   const { loading: loadingAcf, fetchWithLoader: fetchAcf } = usePageLoader();
@@ -174,23 +176,31 @@ export default function CreditCalculatorPage() {
 
   const isLoading = loadingAcf || loadingGlobal;
 
-  useEffect(() => {
+  // useCallback żeby wyeliminować problem ze znikającymi dependencies w useEffect
+  const loadGlobalData = useCallback(() => {
     fetchGlobal(async () => {
       const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
       if (res.ok) { const json = await res.json(); if (json.acf) setGlobal(json.acf); }
     });
-  }, []);
+  }, [fetchGlobal]);
 
-  useEffect(() => {
+  const loadAcfData = useCallback(() => {
     if (!CALC_PAGE_ID) return;
     fetchAcf(async () => {
       const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${CALC_PAGE_ID}?_fields=acf`);
       if (res.ok) { const json = await res.json(); if (json.acf) setAcf(json.acf); }
     });
-  }, []);
+  }, [fetchAcf]);
+
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  useEffect(() => {
+    loadAcfData();
+  }, [loadAcfData]);
 
   const phone = global.global_phone || "";
-  const email = global.global_email || "";
   const openWidget = LENDI_WIDGETS.find((w) => w.id === openWidgetId) || null;
 
   useEffect(() => {
@@ -266,7 +276,7 @@ export default function CreditCalculatorPage() {
                   </div>
 
                   <div className="relative mb-4 h-14 flex items-center">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D7A5F]/10 to-[#2D7A5F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-[#2D7A5F]/10 to-[#2D7A5F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Icon className="w-7 h-7 text-[#2D7A5F]" />
                     </div>
                   </div>
@@ -274,13 +284,13 @@ export default function CreditCalculatorPage() {
                   <h3 className="text-xl sm:text-[22px] text-[#1A1A1A] mb-2 leading-tight h-14 line-clamp-2" style={clampStyle(2)}>{title}</h3>
                   <p className="text-sm sm:text-[15px] text-[#6B6B6B] leading-relaxed mb-4 h-16 line-clamp-3" style={clampStyle(3)}>{desc}</p>
 
-                  <div className="h-px bg-gradient-to-r from-[#2D7A5F]/20 via-[#2D7A5F]/10 to-transparent mb-4" />
+                  <div className="h-px bg-linear-to-r from-[#2D7A5F]/20 via-[#2D7A5F]/10 to-transparent mb-4" />
 
                   <div className="mb-4 flex-1">
                     <ul className="space-y-2">
                       {widget.bullets.map((bullet, idx) => (
                         <li key={idx} className="flex items-start gap-3 text-sm text-[#6B6B6B]">
-                          <div className="w-4 h-4 rounded-full bg-[#2D7A5F]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <div className="w-4 h-4 rounded-full bg-[#2D7A5F]/10 flex items-center justify-center shrink-0 mt-0.5">
                             <CheckCircle className="w-3 h-3 text-[#2D7A5F]" />
                           </div>
                           <span className="leading-relaxed">{bullet}</span>
@@ -301,7 +311,7 @@ export default function CreditCalculatorPage() {
           {/* Tip */}
           <div className="mt-10 sm:mt-12 bg-white rounded-3xl p-7 sm:p-8 shadow-lg border border-[#2D7A5F]/10">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-[#2D7A5F]/10 flex items-center justify-center">
+              <div className="shrink-0 w-12 h-12 rounded-xl bg-[#2D7A5F]/10 flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-[#2D7A5F]" />
               </div>
               <div>
@@ -317,7 +327,7 @@ export default function CreditCalculatorPage() {
       {(acf?.kalkkred_cta_title || acf?.kalkkred_cta_desc) && (
         <section className="pb-14 sm:pb-20 lg:pb-24 bg-[#F5F1E8]">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
-            <div className="bg-gradient-to-br from-[#2D7A5F] to-[#1F5A43] rounded-3xl p-8 sm:p-10 lg:p-12 text-white shadow-2xl text-center">
+            <div className="bg-linear-to-br from-[#2D7A5F] to-[#1F5A43] rounded-3xl p-8 sm:p-10 lg:p-12 text-white shadow-2xl text-center">
               {acf.kalkkred_cta_title && <h3 className="text-2xl sm:text-3xl mb-3">{acf.kalkkred_cta_title}</h3>}
               {acf.kalkkred_cta_desc && <p className="text-white/85 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">{acf.kalkkred_cta_desc}</p>}
               <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">

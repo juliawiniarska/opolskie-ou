@@ -23,7 +23,7 @@ import PrivacyPolicyPage from "./components/PrivacypolicyPage";
 import { CookieBanner } from "./components/CookieBanner";
 import FAQPage from "./components/FAQPage";
 import CreditsPage from "./components/CreditsPage";
-import CreditCalculatorPage from "./components/Creditcalculatorpage";
+import CreditCalculatorPage from "./components/CreditCalculatorPage";
 import { GlobalProvider } from './GlobalContext';
 
 

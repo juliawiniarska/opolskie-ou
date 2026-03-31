@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   Home,
@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Check,
   AlertCircle,
+  LucideIcon,
 } from "lucide-react";
 
 import { OfferPageHero } from "./offer/OfferPageHero";
@@ -19,12 +20,16 @@ const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 const CREDITS_PAGE_ID = 3196;
 const GLOBAL_SETTINGS_ID = 2756;
 
+// --- TYPY ---
 type CreditMap = {
   id: number;
   slug: string;
-  icon: any;
+  icon: LucideIcon;
   acfPrefix: string;
 };
+
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
 
 const CREDIT_MAPPING: CreditMap[] = [
   { id: 1, slug: "kredyty-hipoteczne", icon: Home, acfPrefix: "kredyt_1" },
@@ -33,7 +38,7 @@ const CREDIT_MAPPING: CreditMap[] = [
   { id: 4, slug: "kredyty-samochodowe", icon: Car, acfPrefix: "kredyt_4" },
 ];
 
-function CreditsLandingPage({ texts, phone }: { texts: any; phone: string }) {
+function CreditsLandingPage({ texts, phone }: { texts: AcfData | null; phone: string }) {
   useEffect(() => {
     if (texts?.kredyty_meta_title) document.title = texts.kredyty_meta_title;
   }, [texts]);
@@ -73,7 +78,7 @@ function CreditsLandingPage({ texts, phone }: { texts: any; phone: string }) {
               return (
                 <Link key={credit.slug} to={`/kredyty/${credit.slug}`} className="group bg-white rounded-3xl p-7 sm:p-8 shadow-lg border border-[#2D7A5F]/10 hover:border-[#2D7A5F]/30 hover:shadow-xl transition-all">
                   <div className="flex items-start gap-5">
-                    <div className="bg-[#2D7A5F]/10 rounded-2xl p-4 flex-shrink-0 group-hover:bg-[#2D7A5F] group-hover:text-white text-[#2D7A5F] transition-colors">
+                    <div className="bg-[#2D7A5F]/10 rounded-2xl p-4 shrink-0 group-hover:bg-[#2D7A5F] group-hover:text-white text-[#2D7A5F] transition-colors">
                       <Icon className="w-7 h-7" strokeWidth={1.5} />
                     </div>
                     <div className="space-y-2 flex-1">
@@ -91,7 +96,7 @@ function CreditsLandingPage({ texts, phone }: { texts: any; phone: string }) {
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-[#2D7A5F] to-[#1F5A43] w-full py-16 sm:py-24">
+      <section className="bg-linear-to-br from-[#2D7A5F] to-[#1F5A43] w-full py-16 sm:py-24">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16 text-center text-white">
           <h3 className="text-2xl sm:text-3xl mb-4 font-normal">{texts?.kredyty_cta_title}</h3>
           <p className="text-white/85 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto mb-8 font-normal">{texts?.kredyty_cta_desc}</p>
@@ -113,31 +118,50 @@ function CreditsLandingPage({ texts, phone }: { texts: any; phone: string }) {
 
 export default function CreditsPage() {
   const { slug } = useParams<{ slug: string }>();
-  const [texts, setTexts] = useState<any>(null);
-  const [global, setGlobal] = useState<any>(null);
+  const [texts, setTexts] = useState<AcfData | null>(null);
+  const [global, setGlobal] = useState<GlobalData>({});
 
   const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
   const { loading: loadingGlobal, fetchWithLoader: fetchGlobal } = usePageLoader();
 
   const isLoading = loadingTexts || loadingGlobal;
 
-  useEffect(() => {
+  const loadGlobalData = useCallback(() => {
     fetchGlobal(async () => {
       const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
       if (res.ok) { const json = await res.json(); if (json.acf) setGlobal(json.acf); }
     });
-  }, []);
+  }, [fetchGlobal]);
 
-  useEffect(() => {
+  const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
       const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${CREDITS_PAGE_ID}?_fields=acf`);
       if (res.ok) { const json = await res.json(); if (json.acf) setTexts(json.acf); }
     });
-  }, []);
+  }, [fetchTexts]);
+
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  useEffect(() => {
+    loadTextsData();
+  }, [loadTextsData]);
+
+  const phone = global.global_phone || "";
+
+  useEffect(() => {
+    if (!slug || !texts) return;
+    const mapItem = CREDIT_MAPPING.find((c) => c.slug === slug);
+    if (mapItem) {
+      const metaTitle = texts[`${mapItem.acfPrefix}_meta_title`];
+      if (metaTitle) {
+        document.title = metaTitle;
+      }
+    }
+  }, [slug, texts]);
 
   if (isLoading) return <PageLoader />;
-
-  const phone = global?.global_phone || "";
 
   if (!slug) return <CreditsLandingPage texts={texts} phone={phone} />;
 
@@ -162,20 +186,18 @@ export default function CreditsPage() {
   const description = texts?.[`${prefix}_desc`];
 
   const includesRaw = texts?.[`${prefix}_includes`];
-  const includes = includesRaw ? includesRaw.split("\n").filter((l: any) => l.trim()) : [];
+  const includes = includesRaw ? includesRaw.split("\n").filter((l: string) => l.trim()) : [];
 
   const features = [
-    { title: texts?.[`${prefix}_s1_title`], items: texts?.[`${prefix}_s1_items`] ? texts[`${prefix}_s1_items`].split("\n").filter((l: any) => l.trim()) : [] },
-    { title: texts?.[`${prefix}_s2_title`], items: texts?.[`${prefix}_s2_items`] ? texts[`${prefix}_s2_items`].split("\n").filter((l: any) => l.trim()) : [] },
-    { title: texts?.[`${prefix}_s3_title`], items: texts?.[`${prefix}_s3_items`] ? texts[`${prefix}_s3_items`].split("\n").filter((l: any) => l.trim()) : [] },
+    { title: texts?.[`${prefix}_s1_title`], items: texts?.[`${prefix}_s1_items`] ? texts[`${prefix}_s1_items`]!.split("\n").filter((l: string) => l.trim()) : [] },
+    { title: texts?.[`${prefix}_s2_title`], items: texts?.[`${prefix}_s2_items`] ? texts[`${prefix}_s2_items`]!.split("\n").filter((l: string) => l.trim()) : [] },
+    { title: texts?.[`${prefix}_s3_title`], items: texts?.[`${prefix}_s3_items`] ? texts[`${prefix}_s3_items`]!.split("\n").filter((l: string) => l.trim()) : [] },
   ];
 
   const highlight = {
     title: texts?.[`${prefix}_tip_title`],
     description: texts?.[`${prefix}_tip_desc`],
   };
-
-  document.title = texts?.[`${prefix}_meta_title`] || "";
 
   return (
     <main className="bg-[#F5F1E8] min-h-screen">
@@ -189,12 +211,12 @@ export default function CreditsPage() {
 
       <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8]">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="bg-gradient-to-br from-[#2D7A5F] to-[#1F5A43] rounded-3xl p-7 sm:p-10 shadow-2xl text-white">
+          <div className="bg-linear-to-br from-[#2D7A5F] to-[#1F5A43] rounded-3xl p-7 sm:p-10 shadow-2xl text-white">
             <h2 className="text-2xl sm:text-3xl mb-6 sm:mb-8">Co obejmuje ta oferta?</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {includes.map((item: string, index: number) => (
                 <div key={index} className="flex items-start gap-4 group">
-                  <div className="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center mt-1 group-hover:bg-white/30 transition-colors">
+                  <div className="shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center mt-1 group-hover:bg-white/30 transition-colors">
                     <Check className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-base sm:text-lg text-white/95">{item}</span>
@@ -206,7 +228,7 @@ export default function CreditsPage() {
               <div className="mt-8 sm:mt-10 pt-8 border-t border-white/20">
                 <div className="bg-white/10 rounded-2xl p-5 sm:p-6 backdrop-blur-sm">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-6 h-6 text-white flex-shrink-0 mt-1" />
+                    <AlertCircle className="w-6 h-6 text-white shrink-0 mt-1" />
                     <div>
                       <h3 className="text-lg sm:text-xl mb-2">{highlight.title}</h3>
                       <p className="text-white/90 text-sm sm:text-base">{highlight.description}</p>
@@ -223,9 +245,9 @@ export default function CreditsPage() {
                 <div key={index} className="bg-white rounded-2xl p-7 sm:p-8 shadow-lg border border-[#2D7A5F]/10 hover:shadow-xl transition-shadow">
                   <h3 className="text-lg sm:text-xl text-[#1A1A1A] mb-5 sm:mb-6">{feature.title}</h3>
                   <ul className="space-y-3">
-                    {feature.items.map((item, itemIndex) => (
+                    {feature.items.map((item: string, itemIndex: number) => (
                       <li key={itemIndex} className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-1.5 h-1.5 bg-[#2D7A5F] rounded-full mt-2" />
+                        <div className="shrink-0 w-1.5 h-1.5 bg-[#2D7A5F] rounded-full mt-2" />
                         <span className="text-[#6B6B6B]">{item}</span>
                       </li>
                     ))}
@@ -237,7 +259,7 @@ export default function CreditsPage() {
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-[#2D7A5F] to-[#1F5A43] w-full py-16 sm:py-24">
+      <section className="bg-linear-to-br from-[#2D7A5F] to-[#1F5A43] w-full py-16 sm:py-24">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16 text-center text-white">
           <h2 className="text-3xl sm:text-4xl mb-5 font-normal">Oblicz swoją ratę i sprawdź zdolność</h2>
           <p className="text-white/85 text-lg sm:text-xl mb-10 max-w-3xl mx-auto leading-relaxed font-normal">
