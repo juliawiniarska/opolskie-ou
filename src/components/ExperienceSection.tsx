@@ -64,18 +64,18 @@ export function ExperienceSection() {
       <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
           
-          {/* LEWA STRONA – IMAGE */}
+          {/* LEFT – IMAGE (Ścieżka ze spacją przywrócona ze starego kodu) */}
           <div className="relative max-w-xl mx-auto lg:mx-0">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
               <ImageWithFallback
-                src={texts.exp_image || "/img o nas.jpg"} // Poprawione zdjęcie ze spacjami
-                alt={texts.exp_image_alt || "Wojciech Kurzeja - Ekspert ubezpieczeniowy"}
+                src={texts.exp_image || "/img o nas.jpg"}
+                alt="Wojciech Kurzeja - Ekspert ubezpieczeniowy"
                 className="w-full aspect-[4/5] object-cover"
               />
             </div>
 
             <div className="absolute top-0 right-10 translate-x-[50%] translate-y-[-50%] sm:translate-x-0 sm:translate-y-0 sm:-top-8 sm:-right-8 bg-white rounded-2xl sm:rounded-3xl px-4 py-3 sm:px-8 sm:py-6 shadow-2xl border border-[#2D7A5F]/10">
-              <div className="text-2xl sm:text-4xl md:text-5xl text-[#2D7A5F] mb-1 sm:mb-2 font-bold">
+              <div className="text-2xl sm:text-4xl md:text-5xl text-[#2D7A5F] mb-1 sm:mb-2">
                 {texts.exp_stat_num}
               </div>
               <div className="text-[#2D7A5F]/70 text-xs sm:text-lg">
@@ -84,15 +84,15 @@ export function ExperienceSection() {
             </div>
           </div>
 
-          {/* PRAWA STRONA – TREŚĆ */}
+          {/* RIGHT – CONTENT */}
           <div className="space-y-8 lg:space-y-10 text-white mt-12 lg:mt-0">
             <div className="space-y-5 sm:space-y-6">
               <div className="inline-block">
-                <span className="uppercase tracking-widest text-xs sm:text-sm bg-white/20 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full font-medium">
+                <span className="uppercase tracking-widest text-xs sm:text-sm bg-white/20 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full">
                   {texts.exp_badge}
                 </span>
               </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl leading-tight">
                 {texts.exp_title}
               </h2>
               <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed whitespace-pre-wrap">
@@ -108,7 +108,7 @@ export function ExperienceSection() {
                       <benefit.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={1.5} />
                     </div>
                     <div>
-                      <h4 className="text-white text-base sm:text-lg mb-1 sm:mb-2 font-semibold">
+                      <h4 className="text-white text-base sm:text-lg mb-1 sm:mb-2">
                         {benefit.title}
                       </h4>
                       <p className="text-white/70 text-sm leading-relaxed">
@@ -123,7 +123,7 @@ export function ExperienceSection() {
             <div className="pt-4 sm:pt-6">
               <Link 
                 to="/o-nas" 
-                className="bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] px-8 sm:px-10 py-4 sm:py-5 rounded-2xl transition-all shadow-xl text-base sm:text-lg inline-block font-semibold"
+                className="bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] px-8 sm:px-10 py-4 sm:py-5 rounded-2xl transition-all shadow-xl text-base sm:text-lg inline-block"
               >
                 {texts.exp_btn_text}
               </Link>
