@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { usePageLoader } from "../GlobalContext";
+import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
@@ -73,11 +73,10 @@ export default function DroneRealizationsPage() {
   const [texts, setTexts] = useState<AcfData>({});
   const [global, setGlobal] = useState<GlobalData>({});
 
-  const { fetchWithLoader: fetchTexts } = usePageLoader();
-  const { fetchWithLoader: fetchGlobalReq } = usePageLoader();
+  const { loading, fetchWithLoader } = usePageLoader();
 
   const loadTextsData = useCallback(() => {
-    fetchTexts(async () => {
+    fetchWithLoader(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${DRONE_PAGE_ID}?_fields=acf`);
         if (res.ok) {
@@ -88,10 +87,10 @@ export default function DroneRealizationsPage() {
         console.error("DronePage fetch error:", e);
       }
     });
-  }, [fetchTexts]);
+  }, [fetchWithLoader]);
 
   const loadGlobalData = useCallback(() => {
-    fetchGlobalReq(async () => {
+    fetchWithLoader(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
@@ -102,7 +101,7 @@ export default function DroneRealizationsPage() {
         console.error("Global settings error:", e);
       }
     });
-  }, [fetchGlobalReq]);
+  }, [fetchWithLoader]);
 
   useEffect(() => {
     loadTextsData();
@@ -114,16 +113,18 @@ export default function DroneRealizationsPage() {
   
   // --- ŁADOWANIE SKRYPTU INSTAGRAM (Trustindex) ---
   useEffect(() => {
-    if (widgetContainerRef.current && !widgetContainerRef.current.querySelector("script[src*='trustindex']")) {
+    // Inicjalizacja skryptu dopiero, gdy loader zniknie i kontener jest w DOM
+    if (!loading && widgetContainerRef.current && !widgetContainerRef.current.querySelector("script[src*='trustindex']")) {
       const script = document.createElement("script");
       script.src = INSTAGRAM_SCRIPT_URL;
       script.defer = true;
       script.async = true;
       widgetContainerRef.current.appendChild(script);
     }
-  }, []);
+  }, [loading]);
 
-  // USUNIĘTO BLOKADĘ PageLoader, aby widżet Instagram mógł się zainicjować od razu.
+  // Dodano loader z powrotem
+  if (loading) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
@@ -238,7 +239,7 @@ export default function DroneRealizationsPage() {
               </div>
             </div>
 
-            {/* CTA */}
+            {/* dolne CTA */}
             <div className="mt-10 bg-[#2D7A5F] rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
               <div className="relative text-center">
                 <h2 className="text-2xl sm:text-3xl text-white">

@@ -4,7 +4,6 @@ import {
   FileText,
   Fingerprint
 } from "lucide-react";
-// Poprawiony import typu dla ikony
 import type { LucideIcon } from "lucide-react"; 
 
 import { PageLoader, usePageLoader } from "../GlobalContext";
@@ -97,7 +96,6 @@ export default function PrivacyPolicyPage() {
 
   // --- DANE DYNAMICZNE ---
   const COMPANY_NAME = global.global_company_full || "";
-  // USUNIĘTO NIEUŻYWANĄ ZMIENNĄ ADDRESS, ABY ZLIKWIDOWAĆ BŁĄD
 
   // --- HELPERY DO PARSOWANIA ACF ---
   const getList = (text?: string) => {
@@ -115,6 +113,21 @@ export default function PrivacyPolicyPage() {
       }
       return { t: '', c: line };
     });
+  };
+
+  // HELPER NAPRAWIAJĄCY HTML Z WORDPRESSA
+  const renderHTML = (htmlString: string) => {
+    if (!htmlString) return { __html: "" };
+    
+    // 1. Zamienia className na class
+    let fixedHtml = htmlString.replace(/className=/g, 'class=');
+    
+    // 2. Naprawia samozamykające się divy (które psuły układ tekstu)
+    // <div ... /> zamienia na <div ...></div>
+    fixedHtml = fixedHtml.replace(/<div([^>]*)\/>/g, '<div$1></div>');
+    fixedHtml = fixedHtml.replace(/<span([^>]*)\/>/g, '<span$1></span>');
+
+    return { __html: fixedHtml };
   };
 
   if (isLoading) return <PageLoader />;
@@ -151,10 +164,12 @@ export default function PrivacyPolicyPage() {
               icon={FileText}
             >
               {texts.privacy_sec1_html ? (
-                <div className="prose prose-green max-w-none text-[#4B4B4B]" dangerouslySetInnerHTML={{ __html: texts.privacy_sec1_html }} />
+                <div className="prose prose-green max-w-none text-[#4B4B4B]" dangerouslySetInnerHTML={renderHTML(texts.privacy_sec1_html)} />
               ) : (
                 getList(texts.privacy_sec1_list).map((text: string, idx: number) => (
-                  <PolicyPoint key={idx} number={idx + 1}>{text}</PolicyPoint>
+                  <PolicyPoint key={idx} number={idx + 1}>
+                    <div dangerouslySetInnerHTML={renderHTML(text)} />
+                  </PolicyPoint>
                 ))
               )}
             </PolicySection>
@@ -165,7 +180,9 @@ export default function PrivacyPolicyPage() {
               icon={ShieldCheck}
             >
               {getList(texts.privacy_sec2_list).map((text: string, idx: number) => (
-                <PolicyPoint key={idx} number={idx + 1}>{text}</PolicyPoint>
+                <PolicyPoint key={idx} number={idx + 1}>
+                  <div dangerouslySetInnerHTML={renderHTML(text)} />
+                </PolicyPoint>
               ))}
             </PolicySection>
 
@@ -177,7 +194,7 @@ export default function PrivacyPolicyPage() {
               {getKeyValueList(texts.privacy_sec3_list).map((item: any, idx: number) => (
                 <PolicyPoint key={idx} number={idx + 1}>
                   {item.t && <strong className="block text-[#1A1A1A] mb-1">{item.t}</strong>}
-                  {item.c}
+                  <div dangerouslySetInnerHTML={renderHTML(item.c)} />
                 </PolicyPoint>
               ))}
             </PolicySection>

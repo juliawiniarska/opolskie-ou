@@ -510,7 +510,7 @@ export default function ContactPage() {
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
-                  to="/oferta"
+                  to="/#oferta"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-[#2D7A5F] shadow-sm hover:bg-[#F5F1E8] transition"
                 >
                   {texts.contact_btn_offer} <ArrowRight className="w-4 h-4" />

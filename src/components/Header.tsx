@@ -84,7 +84,8 @@ export function Header() {
     loadGlobalData();
   }, [loadGlobalData]);
 
-  const logoUrl = global.header_logo;
+  // PRZYWRÓCONY FALLBACK LOGA ZE STAREGO KODU
+  const logoUrl = global.header_logo || "/logo-opolskie-ubezpiecznia.png";
   const phone = global.global_phone || "";
   const phoneLink = `tel:${phone.replace(/\s/g, "")}`;
 
@@ -134,18 +135,15 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F5F1E8]/95 backdrop-blur-md border-b border-[#2D7A5F]/15 shadow-sm">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-16 py-4">
         <div className="flex items-center justify-between gap-4">
-          {/* Logo - identyczne jak na desktopie */}
+          {/* Logo - teraz z wymuszonym wyświetlaniem logoUrl */}
           <div className="flex items-center">
             <Link to="/#top" onClick={closeMobileMenu} className="flex items-center gap-3">
-              {logoUrl && (
-                <img src={logoUrl} alt="Opolskie Ubezpieczenia" className="h-10 sm:h-12 md:h-14 w-auto" />
-              )}
+              <img src={logoUrl} alt="Opolskie Ubezpieczenia" className="h-10 sm:h-12 md:h-14 w-auto" />
             </Link>
           </div>
 
           {/* ═══ Desktop navigation ═══ */}
           <nav className="hidden lg:flex items-center gap-8 xl:gap-8 text-[15px]">
-            {/* Oferta */}
             <DesktopDropdown label="Oferta" linkTo="/#oferta" hook={oferta}>
               {ofertaItems.map((item) => (
                 <Link
@@ -159,7 +157,6 @@ export function Header() {
               ))}
             </DesktopDropdown>
 
-            {/* Kredyty */}
             <DesktopDropdown label="Kredyty" linkTo="/kredyty" hook={kredyty}>
               {kredytyItems.map((item) => (
                 <Link
@@ -173,7 +170,6 @@ export function Header() {
               ))}
             </DesktopDropdown>
 
-            {/* Kalkulatory */}
             <DesktopDropdown label="Kalkulatory" linkTo="/kalkulator" hook={kalkulatory}>
               {kalkulatoryItems.map((item) => (
                 <Link
