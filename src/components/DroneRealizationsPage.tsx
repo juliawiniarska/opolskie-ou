@@ -10,12 +10,12 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { PageLoader, usePageLoader } from "../GlobalContext";
+import { usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
-const DRONE_PAGE_ID = 2708; // <-- TU WPISZ ID STRONY "REALIZACJE"
-const GLOBAL_SETTINGS_ID = 2756; // ID ustawień globalnych
+const DRONE_PAGE_ID = 2708; 
+const GLOBAL_SETTINGS_ID = 2756;
 
 const CONTACT_URL = "https://www.opolskieubezpieczenia.pl/kontakt/";
 const INSTAGRAM_SCRIPT_URL = "https://cdn.trustindex.io/loader-feed.js?a055963611ea6261358618116af";
@@ -40,26 +40,22 @@ function FeatureCard({
     <div className="group bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-[#2D7A5F]/10 hover:shadow-2xl transition-all hover:-translate-y-1 relative overflow-hidden flex flex-col">
       <div className="pointer-events-none absolute top-0 right-0 w-20 h-20 bg-[#2D7A5F]/5 rounded-bl-full transition-all group-hover:bg-[#2D7A5F]/10" />
 
-      {/* badge */}
       <div className="relative mb-4 h-6 flex items-center">
         <span className="inline-block text-[11px] text-[#2D7A5F] px-3 py-1 bg-[#2D7A5F]/10 rounded-full uppercase tracking-wide">
           {category}
         </span>
       </div>
 
-      {/* icon */}
       <div className="relative mb-4 h-14 flex items-center">
         <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-[#2D7A5F]/10 to-[#2D7A5F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
           <Icon className="w-7 h-7 text-[#2D7A5F]" />
         </div>
       </div>
 
-      {/* title */}
       <h3 className="text-xl sm:text-[22px] text-[#1A1A1A] mb-2 leading-tight min-h-[56px] sm:min-h-[64px]">
         {title}
       </h3>
 
-      {/* desc */}
       <p className="text-sm sm:text-[15px] text-[#6B6B6B] leading-relaxed flex-1">
         {description}
       </p>
@@ -74,16 +70,12 @@ function FeatureCard({
 export default function DroneRealizationsPage() {
   const widgetContainerRef = useRef<HTMLDivElement>(null);
   
-  // Stany na dane
   const [texts, setTexts] = useState<AcfData>({});
   const [global, setGlobal] = useState<GlobalData>({});
 
-  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
-  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
+  const { fetchWithLoader: fetchTexts } = usePageLoader();
+  const { fetchWithLoader: fetchGlobalReq } = usePageLoader();
 
-  const isLoading = loadingTexts || loadingGlobal;
-
-  // 1. Pobieranie treści strony REALIZACJE
   const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
       try {
@@ -98,7 +90,6 @@ export default function DroneRealizationsPage() {
     });
   }, [fetchTexts]);
 
-  // 2. Pobieranie danych globalnych (telefon, email)
   const loadGlobalData = useCallback(() => {
     fetchGlobalReq(async () => {
       try {
@@ -115,15 +106,13 @@ export default function DroneRealizationsPage() {
 
   useEffect(() => {
     loadTextsData();
-  }, [loadTextsData]);
-
-  useEffect(() => {
     loadGlobalData();
-  }, [loadGlobalData]);
+    window.scrollTo(0, 0);
+  }, [loadTextsData, loadGlobalData]);
 
   const phone = global.global_phone || "";
   
-  // --- ŁADOWANIE SKRYPTU TRUSTINDEX ---
+  // --- ŁADOWANIE SKRYPTU INSTAGRAM (Trustindex) ---
   useEffect(() => {
     if (widgetContainerRef.current && !widgetContainerRef.current.querySelector("script[src*='trustindex']")) {
       const script = document.createElement("script");
@@ -134,7 +123,7 @@ export default function DroneRealizationsPage() {
     }
   }, []);
 
-  if (isLoading) return <PageLoader />;
+  // USUNIĘTO BLOKADĘ PageLoader, aby widżet Instagram mógł się zainicjować od razu.
 
   return (
     <main className="bg-[#F5F1E8]">
@@ -203,13 +192,8 @@ export default function DroneRealizationsPage() {
 
       {/* CONTENT */}
       <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
-        <div className="pointer-events-none absolute top-10 left-1/4 w-24 h-24 bg-[#2D7A5F]/5 rounded-full" />
-        <div className="pointer-events-none absolute top-32 right-1/3 w-16 h-16 bg-[#2D7A5F]/5 rotate-45" />
-        <div className="pointer-events-none absolute bottom-20 right-1/4 w-32 h-32 bg-[#2D7A5F]/5 rounded-full" />
-
         <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
           <div className="max-w-6xl mx-auto">
-            {/* 3 kafle – wszystko w nich */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               <FeatureCard
                 category={texts.drone_feat_1_cat}
@@ -233,8 +217,8 @@ export default function DroneRealizationsPage() {
               />
             </div>
 
-            {/* SEKCJA FEED Z INSTAGRAMA (WIDGET TRUSTINDEX) */}
-            <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10 animate-in fade-in zoom-in duration-500">
+            {/* SEKCJA FEED Z INSTAGRAMA */}
+            <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
                 <div className="shrink-0 w-12 h-12 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 flex items-center justify-center">
                   <Sparkles className="w-6 h-6 text-[#2D7A5F]" />
@@ -247,19 +231,15 @@ export default function DroneRealizationsPage() {
                     </h3>
                   </div>
 
-                  {/* KONTENER NA SKRYPT */}
                   <div className="mt-6 w-full flex justify-center overflow-hidden" ref={widgetContainerRef}>
-                     {/* Trustindex wstrzyknie feed tutaj automatycznie */}
+                     {/* Trustindex wstrzyknie feed tutaj */}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* dolne CTA */}
+            {/* CTA */}
             <div className="mt-10 bg-[#2D7A5F] rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
-              <div className="pointer-events-none absolute -right-10 -top-10 w-40 h-40 border-4 border-white/10 rounded-full" />
-              <div className="pointer-events-none absolute -left-12 -bottom-12 w-52 h-52 border-4 border-white/10 rounded-full" />
-
               <div className="relative text-center">
                 <h2 className="text-2xl sm:text-3xl text-white">
                   {texts.drone_cta_title}
