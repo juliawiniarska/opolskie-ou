@@ -10,7 +10,7 @@ const OFFERS_PAGE_ID = 2690;
 
 type AcfData = Record<string, string | undefined>;
 
-// --- LISTA UBEZPIECZYCIELI (Przywrócona na sztywno) ---
+// --- LISTA UBEZPIECZYCIELI (Na sztywno, zestaw 1:1 z oryginału) ---
 const insurersList = [
   { name: "PZU", logo: "/insurers/pzu.png" },
   { name: "Agro Ubezpieczenia", logo: "/insurers/agro.png" },
@@ -35,7 +35,6 @@ export function ServicesShowcase() {
   const [texts, setTexts] = useState<AcfData>({});
   const { loading, fetchWithLoader } = usePageLoader();
 
-  // 1. Pobieranie tekstów ofert z WordPressa
   const loadOffersData = useCallback(() => {
     fetchWithLoader(async () => {
       try {
@@ -54,7 +53,6 @@ export function ServicesShowcase() {
     loadOffersData();
   }, [loadOffersData]);
 
-  // Detekcja mobile
   useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 768);
     calc();
@@ -62,7 +60,6 @@ export function ServicesShowcase() {
     return () => window.removeEventListener("resize", calc);
   }, []);
 
-  // Automatyczne przesuwanie logotypów
   useEffect(() => {
     const id = setInterval(() => {
       setLogoStart((prev) => (prev + 1) % insurersList.length);
@@ -92,7 +89,7 @@ export function ServicesShowcase() {
               {texts.offer_hero_badge}
             </span>
           </div>
-          <h2 className="text-[#2D7A5F] text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-tight mb-4 sm:mb-6 font-bold">
+          <h2 className="text-[#2D7A5F] text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-tight mb-4 sm:mb-6">
             {texts.offer_hero_title}
           </h2>
           <p className="text-[#2D7A5F]/70 text-base sm:text-lg lg:text-xl leading-relaxed">
@@ -167,7 +164,7 @@ export function ServicesShowcase() {
                     </div>
                     <h3
                       className={`
-                        text-xl sm:text-2xl leading-tight transition-colors font-bold
+                        text-xl sm:text-2xl leading-tight transition-colors
                         ${isActiveMobile ? "text-white" : "text-[#2D7A5F] group-hover:text-white"}
                       `}
                     >
@@ -204,7 +201,7 @@ export function ServicesShowcase() {
                       ${isActiveMobile ? "text-white" : "text-[#2D7A5F] group-hover:text-white"}
                     `}
                   >
-                    <span className="text-sm sm:text-base font-semibold">Zobacz szczegóły</span>
+                    <span className="text-sm sm:text-base">Zobacz szczegóły</span>
                     <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
