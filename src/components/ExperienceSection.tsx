@@ -7,7 +7,7 @@ import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
-const HOME_PAGE_ID = 2688; // <-- ID STRONY GŁÓWNEJ
+const HOME_PAGE_ID = 2688;
 
 type AcfData = Record<string, string | undefined>;
 
@@ -64,18 +64,18 @@ export function ExperienceSection() {
       <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
           
-          {/* LEWA STRONA – IMAGE (Zdjęcie przywrócone z Twojego starego kodu) */}
+          {/* LEWA STRONA – IMAGE */}
           <div className="relative max-w-xl mx-auto lg:mx-0">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
               <ImageWithFallback
-                src={texts.exp_image || "/img o nas.jpg"} // <--- Poprawiona ścieżka ze starego kodu
+                src={texts.exp_image || "/img o nas.jpg"} // Poprawione zdjęcie ze spacjami
                 alt={texts.exp_image_alt || "Wojciech Kurzeja - Ekspert ubezpieczeniowy"}
                 className="w-full aspect-[4/5] object-cover"
               />
             </div>
 
             <div className="absolute top-0 right-10 translate-x-[50%] translate-y-[-50%] sm:translate-x-0 sm:translate-y-0 sm:-top-8 sm:-right-8 bg-white rounded-2xl sm:rounded-3xl px-4 py-3 sm:px-8 sm:py-6 shadow-2xl border border-[#2D7A5F]/10">
-              <div className="text-2xl sm:text-4xl md:text-5xl text-[#2D7A5F] mb-1 sm:mb-2 font-bold"> {/* font-bold jak w starym kodzie */}
+              <div className="text-2xl sm:text-4xl md:text-5xl text-[#2D7A5F] mb-1 sm:mb-2 font-bold">
                 {texts.exp_stat_num}
               </div>
               <div className="text-[#2D7A5F]/70 text-xs sm:text-lg">
@@ -92,7 +92,7 @@ export function ExperienceSection() {
                   {texts.exp_badge}
                 </span>
               </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold"> {/* font-bold jak w starym kodzie */}
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold">
                 {texts.exp_title}
               </h2>
               <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed whitespace-pre-wrap">
@@ -108,7 +108,7 @@ export function ExperienceSection() {
                       <benefit.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={1.5} />
                     </div>
                     <div>
-                      <h4 className="text-white text-base sm:text-lg mb-1 sm:mb-2 font-semibold"> {/* font-semibold jak w starym kodzie */}
+                      <h4 className="text-white text-base sm:text-lg mb-1 sm:mb-2 font-semibold">
                         {benefit.title}
                       </h4>
                       <p className="text-white/70 text-sm leading-relaxed">
