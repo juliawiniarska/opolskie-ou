@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+// Usunięto import Link, bo nie był używany
 import {
   Calculator,
   ArrowRight,
@@ -102,25 +102,21 @@ function LendiWidgetEmbed({ widgetHtml, height }: { widgetHtml: string; height: 
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // Wstrzykujemy HTML
     const container = containerRef.current;
     container.innerHTML = widgetHtml;
 
-    // Tworzymy tag skryptu
     const script = document.createElement("script");
     script.src = LENDI_SCRIPT_SRC;
     script.async = true;
     script.id = "lendi-runtime-script";
     document.body.appendChild(script);
 
-    // FUNKCJA CZYSZCZĄCA (Uruchamia się przy zamknięciu modalu)
     return () => {
-      container.innerHTML = ""; // Czyścimy HTML widżetu
+      container.innerHTML = ""; 
       const existingScript = document.getElementById("lendi-runtime-script");
       if (existingScript) {
-        document.body.removeChild(existingScript); // Usuwamy skrypt z Body
+        document.body.removeChild(existingScript); 
       }
-      // Opcjonalne: czyszczenie globalnych zmiennych Lendi, jeśli istnieją
       if ((window as any).LendiWidget) delete (window as any).LendiWidget;
     };
   }, [widgetHtml]);
@@ -132,7 +128,7 @@ function LendiWidgetEmbed({ widgetHtml, height }: { widgetHtml: string; height: 
   );
 }
 
-// --- Modal (Podniesiony wyżej) ---
+// --- Modal ---
 function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[number]; acf: AcfData | null; onClose: () => void }) {
   const title = acf?.[widget.acfTitleField];
 
@@ -144,11 +140,9 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
   }, [onClose]);
 
   return (
-    // Zmniejszony padding top (pt-4) dla lepszego wyglądu
     <div className="fixed inset-0 z-100 flex items-start justify-center pt-4 sm:pt-6 px-4 pb-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
-      {/* Modal zajmuje teraz więcej miejsca w pionie (max-h-[calc(100vh-2rem)]) */}
       <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] bg-white rounded-3xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-[#2D7A5F]/10 bg-[#F5F1E8] shrink-0">
           <h3 className="text-lg sm:text-xl text-[#1A1A1A] font-medium">{title}</h3>
@@ -163,13 +157,6 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
     </div>
   );
 }
-
-const clampStyle = (lines: number): React.CSSProperties => ({
-  display: "-webkit-box",
-  WebkitLineClamp: lines.toString(),
-  WebkitBoxOrient: "vertical",
-  overflow: "hidden",
-});
 
 // --- GŁÓWNY KOMPONENT ---
 export default function CreditCalculatorPage() {
@@ -311,7 +298,7 @@ export default function CreditCalculatorPage() {
         </div>
       </section>
 
-      {/* MODAL (Czyszczący procesy przy zamknięciu) */}
+      {/* MODAL */}
       {openWidget && <WidgetModal widget={openWidget} acf={acf} onClose={() => setOpenWidgetId(null)} />}
     </main>
   );
