@@ -17,7 +17,7 @@ import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
-const CALC_PAGE_ID = 3199; // ← Uzupełnij ID strony w WP
+const CALC_PAGE_ID = 3199; 
 const GLOBAL_SETTINGS_ID = 2756;
 
 const LENDI_SCRIPT_SRC = "https://embed.lendi.pl/widget.js";
@@ -92,7 +92,6 @@ const LENDI_WIDGETS = [
   },
 ];
 
-// Wyciągamy typ dla ACF i Global poza użycie zmiennych `any`
 type AcfData = Record<string, string | undefined>;
 type GlobalData = Record<string, string | undefined>;
 
@@ -129,9 +128,11 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-100 flex items-start justify-center pt-20 sm:pt-24 px-4 pb-4">
+    /* Zmiana tutaj: pt-4 sm:pt-8 zamiast pt-20 sm:pt-24 */
+    <div className="fixed inset-0 z-100 flex items-start justify-center pt-4 sm:pt-8 px-4 pb-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-5xl max-h-[calc(100vh-6rem)] bg-white rounded-3xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden flex flex-col">
+      {/* Zmiana tutaj: max-h-[calc(100vh-2rem)] zamiast -6rem, aby modal był wyżej */}
+      <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] bg-white rounded-3xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-[#2D7A5F]/10 bg-[#F5F1E8] shrink-0">
           <h3 className="text-lg sm:text-xl text-[#1A1A1A] font-medium">{title}</h3>
           <button onClick={onClose} className="w-9 h-9 rounded-full bg-white border border-[#2D7A5F]/10 flex items-center justify-center hover:bg-[#2D7A5F]/5 transition-colors cursor-pointer">
@@ -164,7 +165,6 @@ export default function CreditCalculatorPage() {
 
   const isLoading = loadingAcf || loadingGlobal;
 
-  // useCallback żeby wyeliminować problem ze znikającymi dependencies w useEffect
   const loadGlobalData = useCallback(() => {
     fetchGlobal(async () => {
       const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
@@ -231,9 +231,8 @@ export default function CreditCalculatorPage() {
 
         <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
           <div className="mb-10 sm:mb-14 lg:mb-16 text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D7A5F]/10 rounded-full mb-6">
-              <Calculator className="w-4 h-4 text-[#2D7A5F]" />
-              <span className="text-sm text-[#2D7A5F] uppercase tracking-wide">
+            <div className="inline-block mb-5 sm:mb-6">
+              <span className="text-[#2D7A5F] uppercase tracking-widest text-xs sm:text-sm bg-[#2D7A5F]/10 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full">
                 {acf?.kalkkred_badge}
               </span>
             </div>
