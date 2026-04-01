@@ -1,18 +1,23 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Youtube, Phone, Mail, MapPin } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 // Ustawienia Globalne (Telefon, Email, Adres, Sociale, Stopka)
 const GLOBAL_SETTINGS_ID = 2756; 
 
+type GlobalData = Record<string, string | undefined>;
+
 export function Footer() {
   const currentYear = new Date().getFullYear();
-  const [global, setGlobal] = useState<any>({});
+  const [global, setGlobal] = useState<GlobalData>({});
 
-  useEffect(() => {
-    const fetchGlobal = async () => {
+  const { loading, fetchWithLoader } = usePageLoader();
+
+  const loadGlobalData = useCallback(() => {
+    fetchWithLoader(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
@@ -22,21 +27,26 @@ export function Footer() {
       } catch (e) {
         console.error("Footer global settings error:", e);
       }
-    };
-    fetchGlobal();
-  }, []);
+    });
+  }, [fetchWithLoader]);
 
-  // Helpersy z fallbackiem (w razie gdyby pola były puste)
-  const logo = global.footer_logo || "/logo-opolskie-ubezpiecznia.png";
-  const desc = global.footer_desc || "Multiagencja ubezpieczeniowa z 8-letnim doświadczeniem. Specjalizujemy się w ubezpieczeniach rolnych, majątkowych i komunikacyjnych.";
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  // Zmienne bez fallbacków
+  const logo = global.footer_logo;
+  const desc = global.footer_desc;
   
-  const phone = global.global_phone || "739 079 729";
-  const email = global.global_email || "biuro@opolskieubezpieczenia.pl";
-  const address = global.global_address || "ul. Adama Mickiewicza lok. 14, 48-304 Nysa";
+  const phone = global.global_phone || "";
+  const email = global.global_email || "";
+  const address = global.global_address;
 
-  const fbLink = global.social_fb || "#";
-  const igLink = global.social_ig || "#";
-  const ytLink = global.social_yt || "#";
+  const fbLink = global.social_fb;
+  const igLink = global.social_ig;
+  const ytLink = global.social_yt;
+
+  if (loading) return <PageLoader />;
 
   return (
     <footer className="bg-[#F5F1E8] text-[#2D7A5F] border-t border-[#2D7A5F]/10">
@@ -47,11 +57,13 @@ export function Footer() {
           <div className="flex flex-col items-center md:items-start text-center md:text-left gap-6">
             {/* LOGO + NAZWA OBOK SIEBIE */}
             <div className="flex items-center gap-4">
-              <img
-                src={logo}
-                alt="Opolskie Ubezpieczenia"
-                className="h-12 sm:h-16 w-auto"
-              />
+              {logo && (
+                <img
+                  src={logo}
+                  alt="Opolskie Ubezpieczenia"
+                  className="h-12 sm:h-16 w-auto"
+                />
+              )}
               <span className="text-lg sm:text-xl font-semibold text-[#2D7A5F]">
                 Opolskie Ubezpieczenia
               </span>
@@ -62,68 +74,79 @@ export function Footer() {
             </p>
 
             <div className="flex items-center gap-3">
-              <a
-                href={fbLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
-              >
-                <Facebook className="w-5 h-5 sm:w-6 sm:h-6" />
-              </a>
-              <a
-                href={igLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
-              >
-                <Instagram className="w-5 h-5 sm:w-6 sm:h-6" />
-              </a>
-              <a
-                href={ytLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
-              >
-                <Youtube className="w-5 h-5 sm:w-6 sm:h-6" />
-              </a>
+              {fbLink && (
+                <a
+                  href={fbLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
+                >
+                  <Facebook className="w-5 h-5 sm:w-6 sm:h-6" />
+                </a>
+              )}
+              {igLink && (
+                <a
+                  href={igLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
+                >
+                  <Instagram className="w-5 h-5 sm:w-6 sm:h-6" />
+                </a>
+              )}
+              {ytLink && (
+                <a
+                  href={ytLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-[#2D7A5F]/10 hover:bg-[#2D7A5F] text-[#2D7A5F] hover:text-white rounded-2xl flex items-center justify-center transition-all"
+                >
+                  <Youtube className="w-5 h-5 sm:w-6 sm:h-6" />
+                </a>
+              )}
             </div>
           </div>
 
           {/* KONTAKT */}
           <div className="space-y-6 w-full max-w-sm">
-            <div className="flex items-center gap-4">
-              <div className="bg-[#2D7A5F]/10 p-3 rounded-xl shrink-0">
-                <Phone className="w-5 h-5 text-[#2D7A5F]" />
+            {phone && (
+              <div className="flex items-center gap-4">
+                <div className="bg-[#2D7A5F]/10 p-3 rounded-xl shrink-0">
+                  <Phone className="w-5 h-5 text-[#2D7A5F]" />
+                </div>
+                <a
+                  href={`tel:${phone.replace(/\s/g, "")}`}
+                  className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors text-lg"
+                >
+                  {phone}
+                </a>
               </div>
-              <a
-                href={`tel:${phone.replace(/\s/g, "")}`}
-                className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors text-lg"
-              >
-                {phone}
-              </a>
-            </div>
+            )}
 
-            <div className="flex items-center gap-4">
-              <div className="bg-[#2D7A5F]/10 p-3 rounded-xl shrink-0">
-                <Mail className="w-5 h-5 text-[#2D7A5F]" />
+            {email && (
+              <div className="flex items-center gap-4">
+                <div className="bg-[#2D7A5F]/10 p-3 rounded-xl shrink-0">
+                  <Mail className="w-5 h-5 text-[#2D7A5F]" />
+                </div>
+                <a
+                  href={`mailto:${email}`}
+                  className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors break-all text-lg"
+                >
+                  {email}
+                </a>
               </div>
-              <a
-                href={`mailto:${email}`}
-                className="text-[#2D7A5F] hover:text-[#1F5A43] transition-colors break-all text-lg"
-              >
-                {email}
-              </a>
-            </div>
+            )}
 
-            <div className="flex items-center gap-4">
-              <div className="bg-[#2D7A5F]/10 p-3 rounded-xl shrink-0">
-                <MapPin className="w-5 h-5 text-[#2D7A5F]" />
+            {address && (
+              <div className="flex items-center gap-4">
+                <div className="bg-[#2D7A5F]/10 p-3 rounded-xl shrink-0">
+                  <MapPin className="w-5 h-5 text-[#2D7A5F]" />
+                </div>
+                <div className="text-[#2D7A5F] text-lg whitespace-pre-line">
+                  {address}
+                </div>
               </div>
-              {/* Dodano whitespace-pre-line, żeby respektował Entery z pola tekstowego w WP */}
-              <div className="text-[#2D7A5F] text-lg whitespace-pre-line">
-                {address}
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

@@ -1,18 +1,27 @@
 import { ArrowRight, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
-const HOME_PAGE_ID = 2688; // <-- WPISZ TU ID SWOJEJ STRONY GŁÓWNEJ
-const GLOBAL_SETTINGS_ID = 2756; // <-- ID strony z telefonem/emailem
+const HOME_PAGE_ID = 2688; 
+const GLOBAL_SETTINGS_ID = 2756; 
+
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
 
 export function HeroSection() {
-  const [texts, setTexts] = useState<any>({});
-  const [global, setGlobal] = useState<any>({});
+  const [texts, setTexts] = useState<AcfData>({});
+  const [global, setGlobal] = useState<GlobalData>({});
 
-  // Pobieranie danych strony głównej
-  useEffect(() => {
-    const fetchPage = async () => {
+  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
+  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
+
+  const isLoading = loadingTexts || loadingGlobal;
+
+  // 1. Pobieranie danych strony głównej
+  const loadTextsData = useCallback(() => {
+    fetchTexts(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf`);
         if (res.ok) {
@@ -22,13 +31,12 @@ export function HeroSection() {
       } catch (e) {
         console.error("HeroSection error:", e);
       }
-    };
-    fetchPage();
-  }, []);
+    });
+  }, [fetchTexts]);
 
-  // Pobieranie danych globalnych
-  useEffect(() => {
-    const fetchGlobal = async () => {
+  // 2. Pobieranie danych globalnych (telefon, email)
+  const loadGlobalData = useCallback(() => {
+    fetchGlobalReq(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
@@ -38,40 +46,46 @@ export function HeroSection() {
       } catch (e) {
         console.error("Global settings error:", e);
       }
-    };
-    fetchGlobal();
-  }, []);
+    });
+  }, [fetchGlobalReq]);
 
-  const phone = global.global_phone || "739 079 729";
-  const email = global.global_email || "biuro@opolskieubezpieczenia.pl";
+  useEffect(() => {
+    loadTextsData();
+  }, [loadTextsData]);
+
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  const phone = global.global_phone || "";
+  const email = global.global_email || "";
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <section
       id="hero"
       className="relative bg-[#FFF9F0] pt-24 pb-20 sm:pb-24 lg:pb-32 overflow-hidden"
     >
-      {/* Delikatny gradient tła sekcji */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_#ffffff_0,_#F5F1E8_45%,_#E8E1D4_100%)]" />
 
-      {/* Plamy dekoracyjne */}
       <div className="pointer-events-none absolute top-[-80px] right-[-160px] w-[420px] h-[420px] lg:w-[700px] lg:h-[700px] bg-[#2D7A5F]/6 rounded-full blur-3xl" />
       <div className="pointer-events-none absolute bottom-[-120px] left-[-80px] w-[320px] h-[320px] lg:w-[520px] lg:h-[520px] bg-[#2D7A5F]/5 rounded-full blur-3xl" />
 
-      {/* Ilustracja jako tło na mobile / tablet – na całą sekcję, przyklejona do góry */}
+      {/* OBRAZY: Zostawione fallbacki na sztywno zgodnie z prośbą */}
       <div className="pointer-events-none absolute inset-0 lg:hidden">
         <img
           src={texts.hero_img_mobile || "/aaaaaa.png"}
-          alt="Konsultacja ubezpieczeniowa"
+          alt=""
           className="h-full w-full object-cover object-bottom opacity-30"
         />
       </div>
 
-      {/* Ilustracja po prawej – desktop */}
       <div className="pointer-events-none absolute inset-y-[-40px] right-0 hidden w-[100%] lg:block">
         <div className="relative h-full">
           <img
             src={texts.hero_img_desktop || "aa.png"}
-            alt="Konsultacja ubezpieczeniowa"
+            alt=""
             className="h-full w-full object-cover rounded-[4.5rem] opacity-50"
           />
         </div>
@@ -79,89 +93,85 @@ export function HeroSection() {
 
       <div className="relative mx-auto w-full max-w-[1200px] lg:max-w-[1800px] px-6 sm:px-8 lg:px-16">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16 items-center">
-          {/* LEWA STRONA */}
           <div className="lg:col-span-7 space-y-8">
-            {/* Nagłówek + opis */}
             <div className="space-y-5 sm:space-y-6">
               <p className="inline-flex items-center gap-2 rounded-full border border-[#2D7A5F]/15 bg-white/80 px-4 py-2 text-xs sm:text-sm font-medium uppercase tracking-[0.18em] text-[#2D7A5F] shadow-sm shadow-[#2D7A5F]/10">
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#2D7A5F]/10">
                   <Shield className="h-3.5 w-3.5 text-[#2D7A5F]" />
                 </span>
-                {texts.hero_badge || "Multiagencja ubezpieczeniowa • Nysa"}
+                {texts.hero_badge}
               </p>
 
               <h1 className="text-[#2D7A5F] text-[2.5rem] sm:text-5xl lg:text-[3.6rem] xl:text-[4.2rem] leading-[1.05] font-bold tracking-tight">
-                <span className="block">{texts.hero_title_1 || "Twoje bezpieczeństwo"}</span>
-                <span className="block text-[#1B5C45]">{texts.hero_title_2 || "to nasza misja"}</span>
+                <span className="block">{texts.hero_title_1}</span>
+                <span className="block text-[#1B5C45]">{texts.hero_title_2}</span>
               </h1>
 
               <p className="max-w-2xl text-lg sm:text-xl text-[#2D7A5F]/70 leading-relaxed">
-                {texts.hero_desc || "Kompleksowe ubezpieczenia dla Ciebie, Twojej rodziny i firmy. Porównujemy 10+ ofert i znajdujemy najlepsze rozwiązanie."}
+                {texts.hero_desc}
               </p>
             </div>
 
-            {/* CTA */}
             <div className="flex flex-wrap items-center gap-4 pt-4 sm:pt-6">
               <a
                 href="/kalkulator"
                 className="group flex items-center gap-3 rounded-2xl bg-[#2D7A5F] px-8 sm:px-10 py-4 sm:py-5 text-white shadow-xl shadow-[#2D7A5F]/30 transition-all hover:bg-[#1F5A43] hover:shadow-2xl hover:shadow-[#2D7A5F]/40"
               >
-                <span className="text-base sm:text-lg">{texts.hero_btn_text || "Kalkulator online"}</span>
+                <span className="text-base sm:text-lg">{texts.hero_btn_text}</span>
                 <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:translate-x-1" />
               </a>
             </div>
           </div>
 
-          {/* PRAWA STRONA – karta konsultacji */}
           <div className="relative mt-8 lg:mt-0 lg:col-span-5 lg:flex lg:items-center lg:justify-end">
             <div className="relative z-10 w-full rounded-3xl border border-[#2D7A5F]/10 bg-white p-7 sm:p-8 lg:p-10 shadow-2xl lg:max-w-[460px] lg:ml-auto lg:translate-y-6">
-              <div className="space-y-6 ">
-                <div className="space-y-3 ">
+              <div className="space-y-6">
+                <div className="space-y-3">
                   <h3 className="text-2xl sm:text-3xl text-[#2D7A5F]">
-                    {texts.hero_card_title || "Umów się na konsultację"}
+                    {texts.hero_card_title}
                   </h3>
                   <p className="text-base sm:text-lg leading-relaxed text-[#2D7A5F]/70">
-                    {texts.hero_card_desc || "Skontaktuj się z naszym ekspertem i otrzymaj spersonalizowaną ofertę."}
+                    {texts.hero_card_desc}
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-2xl bg-[#F5F1E8] p-5 sm:p-6">
-                    <div className="mb-2 text-sm text-[#2D7A5F]/60">
-                      Telefon
+                  {phone && (
+                    <div className="rounded-2xl bg-[#F5F1E8] p-5 sm:p-6">
+                      <div className="mb-2 text-sm text-[#2D7A5F]/60">Telefon</div>
+                      <a
+                        href={`tel:${phone.replace(/\s/g, "")}`}
+                        className="text-2xl sm:text-3xl text-[#2D7A5F] transition-colors hover:text-[#1F5A43]"
+                      >
+                        {phone}
+                      </a>
                     </div>
-                    <a
-                      href={`tel:${phone.replace(/\s/g, "")}`}
-                      className="text-2xl sm:text-3xl text-[#2D7A5F] transition-colors hover:text-[#1F5A43]"
-                    >
-                      {phone}
-                    </a>
-                  </div>
+                  )}
 
-                  <div className="rounded-2xl bg-[#F5F1E8] p-5 sm:p-6">
-                    <div className="mb-2 text-sm text-[#2D7A5F]/60">Email</div>
-                    <a
-                      href={`mailto:${email}`}
-                      className="break-all text-sm sm:text-base text-[#2D7A5F] transition-colors hover:text-[#1F5A43]"
-                    >
-                      {email}
-                    </a>
-                  </div>
+                  {email && (
+                    <div className="rounded-2xl bg-[#F5F1E8] p-5 sm:p-6">
+                      <div className="mb-2 text-sm text-[#2D7A5F]/60">Email</div>
+                      <a
+                        href={`mailto:${email}`}
+                        className="break-all text-sm sm:text-base text-[#2D7A5F] transition-colors hover:text-[#1F5A43]"
+                      >
+                        {email}
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-[#2D7A5F]/10 pt-5 sm:pt-6">
                   <div className="flex items-center gap-4">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2D7A5F]/10 sm:h-16 sm:w-16">
-                      <span className="text-xl sm:text-2xl text-[#2D7A5F]">
-                        WK
-                      </span>
+                      <span className="text-xl sm:text-2xl text-[#2D7A5F]">WK</span>
                     </div>
                     <div>
                       <div className="text-base sm:text-lg text-[#2D7A5F]">
-                        {texts.hero_person_name || "Wojciech Kurzeja"}
+                        {texts.hero_person_name}
                       </div>
                       <div className="text-sm text-[#2D7A5F]/60">
-                        {texts.hero_person_role || "Ekspert ubezpieczeniowy"}
+                        {texts.hero_person_role}
                       </div>
                     </div>
                   </div>
@@ -172,7 +182,6 @@ export function HeroSection() {
         </div>
       </div>
 
-      {/* Fala na dole sekcji */}
       <div className="pointer-events-none absolute bottom-0 left-0 right-0">
         <svg
           viewBox="0 0 1440 120"

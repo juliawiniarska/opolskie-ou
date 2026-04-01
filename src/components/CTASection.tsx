@@ -6,53 +6,74 @@ import {
   Calculator,
   FileText,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 const HOME_PAGE_ID = 2688;
 const GLOBAL_SETTINGS_ID = 2756;
 
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
+
 export function CTASection() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [texts, setTexts] = useState<any>({});
-  const [global, setGlobal] = useState<any>({});
+  const [texts, setTexts] = useState<AcfData>({});
+  const [global, setGlobal] = useState<GlobalData>({});
 
-  useEffect(() => {
-    const fetchPage = async () => {
+  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
+  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
+
+  const isLoading = loadingTexts || loadingGlobal;
+
+  const loadTextsData = useCallback(() => {
+    fetchTexts(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setTexts(json.acf);
         }
-      } catch (e) { console.error(e); }
-    };
-    fetchPage();
-  }, []);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }, [fetchTexts]);
 
-  useEffect(() => {
-    const fetchGlobal = async () => {
+  const loadGlobalData = useCallback(() => {
+    fetchGlobalReq(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setGlobal(json.acf);
         }
-      } catch (e) { console.error(e); }
-    };
-    fetchGlobal();
-  }, []);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }, [fetchGlobalReq]);
 
-  const phone = global.global_phone || "739 079 729";
-  const email = global.global_email || "biuro@opolskieubezpieczenia.pl";
-  const address = global.global_address || "ul. Adama Mickiewicza lok. 14, 48-304 Nysa";
+  useEffect(() => {
+    loadTextsData();
+  }, [loadTextsData]);
+
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  const phone = global.global_phone || "";
+  const email = global.global_email || "";
+  const address = global.global_address || "";
 
   const handleCardClick = (index: number) => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setActiveIndex((prev) => (prev === index ? null : index));
     }
   };
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <section className="relative py-24 sm:py-28 lg:py-32 bg-[#2D7A5F] text-white overflow-hidden">
@@ -69,14 +90,14 @@ export function CTASection() {
         <div className="text-center mb-12 sm:mb-16 lg:mb-20">
           <div className="inline-block mb-5 sm:mb-6">
             <span className="text-white uppercase tracking-widest text-xs sm:text-sm bg-white/20 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full">
-              {texts.cta_badge || "Skontaktuj się"}
+              {texts.cta_badge}
             </span>
           </div>
           <h2 className="text-white text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-tight mb-4 sm:mb-6 max-w-3xl lg:max-w-4xl mx-auto">
-            {texts.cta_title || "Otrzymaj darmową wycenę"}
+            {texts.cta_title}
           </h2>
           <p className="text-white/80 text-sm sm:text-base lg:text-xl leading-relaxed max-w-3xl mx-auto">
-            {texts.cta_desc || "Porozmawiajmy o Twoich potrzebach. Znajdziemy najlepsze rozwiązanie."}
+            {texts.cta_desc}
           </p>
         </div>
 
@@ -253,8 +274,8 @@ export function CTASection() {
           {(() => {
             const isActive = activeIndex === 2;
             return (
-              <a
-                href="/kalkulator"
+              <Link
+                to="/kalkulator-kredytowy"
                 onClick={() => handleCardClick(2)}
                 className={`
                   group
@@ -324,7 +345,7 @@ export function CTASection() {
                     </div>
                   </div>
                 </div>
-              </a>
+              </Link>
             );
           })()}
         </div>

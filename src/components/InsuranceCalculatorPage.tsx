@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Phone,
   Mail,
@@ -16,19 +16,17 @@ import {
   CheckCircle,
 } from "lucide-react";
 
+import { PageLoader, usePageLoader } from "../GlobalContext";
+
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
-
-// 1. ID strony "[EDYCJA] Kalkulator" (treści tej strony)
 const PAGE_ID = 2698;
-
-// 2. ID strony "[USTAWIENIA] Globalne"
 const GLOBAL_SETTINGS_ID = 2756; 
 
 const CUK_CODE = "28da35012d1947390118";
 const CUK_UTM = `utm_source=linkdoradca&utm_medium=referral&kod=${CUK_CODE}`;
 
-function withCukRef(url: string) {
+function withCukRef(url?: string) {
   if (!url) return "#";
   return url.includes("?") ? `${url}&${CUK_UTM}` : `${url}?${CUK_UTM}`;
 }
@@ -36,15 +34,10 @@ function withCukRef(url: string) {
 // Typy danych
 type CalcCardDef = {
   id: number;
-  defaultTitle: string;
-  defaultDesc: string;
-  defaultHref: string;
   Icon: React.ComponentType<{ className?: string }>;
-  defaultBullets: string[];
   category: string;
 };
 
-// ZMIANA: Dodano global_address
 type GlobalACF = {
   global_phone?: string;
   global_email?: string;
@@ -52,7 +45,6 @@ type GlobalACF = {
 };
 
 type CalcPageACF = {
-  // Hero & General
   calc_hero_title?: string;
   calc_hero_desc?: string;
   calc_contact_title?: string;
@@ -65,121 +57,23 @@ type CalcPageACF = {
   calc_list_desc?: string;
   calc_tip_title?: string;
   calc_tip_desc?: string;
-  
-  // Dynamiczne pola dla kafelków (np. calc_1_title, calc_1_bullets)
   [key: string]: any; 
 };
 
 const calculatorsIds: CalcCardDef[] = [
-  {
-    id: 1,
-    defaultTitle: "Kalkulator OC i AC",
-    defaultDesc: "Oblicz składkę na ubezpieczenie samochodu i porównaj warianty.",
-    defaultHref: "https://cuk.pl/samochod/kalkulator_oc_i_ac",
-    Icon: Car,
-    category: "Komunikacyjne",
-    defaultBullets: [
-      "Przygotuj dane kierowcy i auta",
-      "Porównuj AC: udział własny i wyłączenia",
-      "Sprawdź limity w Assistance",
-    ],
-  },
-  {
-    id: 2,
-    defaultTitle: "Kalkulator domu i mieszkania",
-    defaultDesc: "Sprawdź, ile kosztuje ochrona nieruchomości, wyposażenia i dodatków.",
-    defaultHref: "https://cuk.pl/kalkulator-ubezpieczenia-mieszkania-i-domu",
-    Icon: Home,
-    category: "Majątkowe",
-    defaultBullets: [
-      "Wybierz zakres: mury / ruchomości / OC",
-      "Dobierz ryzyka: zalanie, ogień, kradzież…",
-      "Ustal realne sumy ubezpieczenia",
-    ],
-  },
-  {
-    id: 3,
-    defaultTitle: "Kalkulator ubezpieczenia turystycznego",
-    defaultDesc: "Poznaj cenę polisy na wakacje i wyjazdy służbowe (KL, NNW, OC i dodatki).",
-    defaultHref: "https://cuk.pl/kalkulator-ubezpieczen-turystycznych",
-    Icon: Plane,
-    category: "Turystyczne",
-    defaultBullets: [
-      "Daty, kierunek i liczba osób",
-      "Dobierz dodatki (sport / praca / sprzęt)",
-      "Sprawdź koszty leczenia i transportu",
-    ],
-  },
-  {
-    id: 4,
-    defaultTitle: "Kalkulator ubezpieczeń na życie",
-    defaultDesc: "Dowiedz się, ile zapłacisz za ochronę siebie i bliskich — różne warianty i dodatki.",
-    defaultHref: "https://cuk.pl/na-zycie/kalkulator-ubezpieczenia-na-zycie",
-    Icon: Heart,
-    category: "Osobowe",
-    defaultBullets: [
-      "Ustal priorytet: zdrowie / rodzina / kredyt",
-      "Sprawdź karencje, limity i wyłączenia",
-      "Dobierz rozszerzenia (hospitalizacja, NNW)",
-    ],
-  },
-  {
-    id: 5,
-    defaultTitle: "Kalkulator ubezpieczenia motocykla",
-    defaultDesc: "Porównaj oferty ochrony dla swojego jednośladu i sprawdź składkę OC.",
-    defaultHref: "https://cuk.pl/motocykl/kalkulator_oc",
-    Icon: Bike,
-    category: "Komunikacyjne",
-    defaultBullets: [
-      "Wpisz dane motocykla i kierowcy",
-      "Porównuj zakres i warunki",
-      "Zwróć uwagę na zniżki/historię szkód",
-    ],
-  },
-  {
-    id: 6,
-    defaultTitle: "Kalkulator ubezpieczeń rowerowych",
-    defaultDesc: "Sprawdź koszt zabezpieczenia roweru przed kradzieżą i uszkodzeniem.",
-    defaultHref: "https://cuk.pl/ubezpieczenie-roweru/kalkulator",
-    Icon: ShieldCheck,
-    category: "Majątkowe",
-    defaultBullets: [
-      "Wybierz wariant ochrony (kradzież/uszkodzenie)",
-      "Zwróć uwagę na miejsce przechowywania",
-      "Sprawdź limity i wymagania zabezpieczeń",
-    ],
-  },
-  {
-    id: 7,
-    defaultTitle: "Kalkulator „Bezpieczni w drodze”",
-    defaultDesc: "Wybierz optymalną ochronę na każdą podróż — szybka wycena i warianty.",
-    defaultHref: "https://cuk.pl/bezpieczni-w-drodze/kalkulator",
-    Icon: Shield,
-    category: "Turystyczne",
-    defaultBullets: [
-      "Wybierz wariant dopasowany do podróży",
-      "Sprawdź zakres świadczeń i limity",
-      "Porównaj różnice w opcjach dodatkowych",
-    ],
-  },
-  {
-    id: 8,
-    defaultTitle: "Kalkulator NNW Szkolne",
-    defaultDesc: "Oblicz składkę na ubezpieczenie NNW dla uczniów.",
-    defaultHref: "https://cuk.pl/nnw-szkolne/kalkulator",
-    Icon: GraduationCap,
-    category: "Osobowe",
-    defaultBullets: [
-      "Dobierz sumę ubezpieczenia i zakres",
-      "Sprawdź świadczenia i wyłączenia",
-      "Zweryfikuj ochronę w czasie zajęć i poza nimi",
-    ],
-  },
+  { id: 1, Icon: Car, category: "Komunikacyjne" },
+  { id: 2, Icon: Home, category: "Majątkowe" },
+  { id: 3, Icon: Plane, category: "Turystyczne" },
+  { id: 4, Icon: Heart, category: "Osobowe" },
+  { id: 5, Icon: Bike, category: "Komunikacyjne" },
+  { id: 6, Icon: ShieldCheck, category: "Majątkowe" },
+  { id: 7, Icon: Shield, category: "Turystyczne" },
+  { id: 8, Icon: GraduationCap, category: "Osobowe" },
 ];
 
 const clampStyle = (lines: number): React.CSSProperties => ({
   display: "-webkit-box",
-  WebkitLineClamp: lines as any,
+  WebkitLineClamp: lines.toString(),
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 });
@@ -188,50 +82,57 @@ export default function InsuranceCalculatorPage() {
   const [texts, setTexts] = useState<CalcPageACF>({});
   const [global, setGlobal] = useState<GlobalACF>({});
 
+  const { loading: loadingPage, fetchWithLoader: fetchPageData } = usePageLoader();
+  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalData } = usePageLoader();
+
+  const isLoading = loadingPage || loadingGlobal;
+
   // 1. Pobieranie danych STRONY
-  useEffect(() => {
-    const fetchPage = async () => {
+  const loadPage = useCallback(() => {
+    fetchPageData(async () => {
       try {
         const url = `${WP_BASE}/wp-json/wp/v2/pages/${PAGE_ID}?_fields=acf`;
         const res = await fetch(url);
-        if (!res.ok) return;
-        const json = await res.json();
-        if (json.acf) setTexts(json.acf);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setTexts(json.acf);
+        }
       } catch (e) {
         console.error("Błąd pobierania treści strony", e);
       }
-    };
-    fetchPage();
-  }, []);
+    });
+  }, [fetchPageData]);
 
   // 2. Pobieranie danych GLOBALNYCH
-  useEffect(() => {
-    const fetchGlobal = async () => {
-      if (GLOBAL_SETTINGS_ID === 2756) return; 
-
+  const loadGlobal = useCallback(() => {
+    fetchGlobalData(async () => {
       try {
         const url = `${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`;
         const res = await fetch(url);
-        if (!res.ok) return;
-        const json = await res.json();
-        if (json.acf) setGlobal(json.acf);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setGlobal(json.acf);
+        }
       } catch (e) {
         console.error("Błąd pobierania ustawień globalnych", e);
       }
-    };
-    fetchGlobal();
-  }, []);
+    });
+  }, [fetchGlobalData]);
 
-  // Helpers
-  const getPhone = () => global.global_phone || "739 079 729";
-  const getEmail = () => global.global_email || "biuro@opolskieubezpieczenia.pl";
+  useEffect(() => {
+    loadPage();
+    loadGlobal();
+  }, [loadPage, loadGlobal]);
+
+  const phone = global.global_phone || "";
+  const email = global.global_email || "";
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
       {/* HERO */}
-      {/* HERO */}
       <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
-        {/* Dekoracje tła - identyczne jak w AboutPage */}
         <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
         <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
         <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
@@ -239,50 +140,47 @@ export default function InsuranceCalculatorPage() {
 
         <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-            {/* LEFT - Układ 8 kolumn (jak w O Nas) */}
             <div className="lg:col-span-8 max-w-4xl">
               <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 sm:mb-8 border border-white/20">
                 <Calculator className="w-9 h-9 text-white" strokeWidth={1.5} />
               </div>
 
               <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
-                {texts.calc_hero_title || "Kalkulatory ubezpieczeń online"}
+                {texts.calc_hero_title}
               </h1>
 
               <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-3xl whitespace-pre-wrap">
-                {texts.calc_hero_desc || "Wybierz kalkulator i sprawdź wycenę w kilka minut. Działamy online dla klientów z całej Polski, a stacjonarnie pomagamy w Nysie i w województwie opolskim. Porównasz oferty 20+ towarzystw i zobaczysz realne koszty polisy jeszcze przed zakupem."}
+                {texts.calc_hero_desc}
               </p>
             </div>
 
-            {/* RIGHT - Układ 4 kolumny (jak w O Nas) */}
             <div className="lg:col-span-4">
-              {/* Usunięto sticky, paddingi i style przycisków dopasowane 1:1 do AboutPage */}
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl">
                 <h3 className="text-white text-lg sm:text-xl mb-2">
-                  {texts.calc_contact_title || "Potrzebujesz pomocy?"}
+                  {texts.calc_contact_title}
                 </h3>
                 <p className="text-white/80 text-sm leading-relaxed mb-6">
-                  {texts.calc_contact_desc || "Zadzwoń lub napisz — przygotujemy warianty i przejdziemy przez szczegóły."}
+                  {texts.calc_contact_desc}
                 </p>
 
                 <div className="space-y-3">
                   <a
-                    href={`tel:${getPhone().replace(/\s/g, "")}`}
+                    href={`tel:${phone.replace(/\s/g, "")}`}
                     className="w-full inline-flex items-center justify-center rounded-xl bg-white text-[#2D7A5F] px-5 py-3 font-medium hover:bg-[#F5F1E8] transition-colors"
                   >
-                    <Phone className="w-4 h-4 mr-2" /> {getPhone()}
+                    <Phone className="w-4 h-4 mr-2" /> {phone}
                   </a>
 
                   <a
-                    href={`mailto:${getEmail()}`}
+                    href={`mailto:${email}`}
                     className="w-full inline-flex items-center justify-center rounded-xl border border-white/30 bg-transparent text-white px-5 py-3 hover:bg-white/10 transition-colors"
                   >
-                    <Mail className="w-4 h-4 mr-2" /> {texts.calc_email_btn || "Napisz email"}
+                    <Mail className="w-4 h-4 mr-2" /> {texts.calc_email_btn}
                   </a>
                 </div>
 
                 <div className="mt-6 pt-5 border-t border-white/20 text-xs text-white/70">
-                   {texts.calc_contact_footer || "Kalkulatory otwierają się w nowej karcie. Po wypełnieniu formularza możesz wrócić tutaj i skontaktować się z nami w sprawie najlepszej oferty."}
+                   {texts.calc_contact_footer}
                 </div>
               </div>
             </div>
@@ -301,31 +199,28 @@ export default function InsuranceCalculatorPage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D7A5F]/10 rounded-full mb-6">
               <Calculator className="w-4 h-4 text-[#2D7A5F]" />
               <span className="text-sm text-[#2D7A5F] uppercase tracking-wide">
-                {texts.calc_list_badge || "Dostępne Kalkulatory"}
+                {texts.calc_list_badge}
               </span>
             </div>
             <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-4">
-              {texts.calc_list_title || "Wybierz rodzaj ubezpieczenia"}
+              {texts.calc_list_title}
             </h2>
             <p className="text-base sm:text-lg text-[#6B6B6B]">
-              {texts.calc_list_desc || "Każdy kalkulator prowadzi Cię krok po kroku i pokazuje realną cenę polisy"}
+              {texts.calc_list_desc}
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
-            {calculatorsIds.map(({ id, defaultTitle, defaultDesc, defaultHref, Icon, defaultBullets, category }) => {
-              
-              // Pobieranie danych z ACF (jeśli są, jeśli nie - default)
-              const title = texts[`calc_${id}_title`] || defaultTitle;
-              const description = texts[`calc_${id}_desc`] || defaultDesc;
-              const rawHref = texts[`calc_${id}_url`] || defaultHref;
+            {calculatorsIds.map(({ id, Icon, category }) => {
+              const title = texts[`calc_${id}_title`];
+              const description = texts[`calc_${id}_desc`];
+              const rawHref = texts[`calc_${id}_url`];
               const href = withCukRef(rawHref);
 
-              // Bullet points: jeśli z ACF, dzielimy po nowej linii
               const rawBullets = texts[`calc_${id}_bullets`];
               const bullets = rawBullets 
                 ? rawBullets.split('\n').filter((line: string) => line.trim() !== '') 
-                : defaultBullets;
+                : [];
 
               return (
                 <a
@@ -344,7 +239,7 @@ export default function InsuranceCalculatorPage() {
                   </div>
 
                   <div className="relative mb-4 h-14 flex items-center">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D7A5F]/10 to-[#2D7A5F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-[#2D7A5F]/10 to-[#2D7A5F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Icon className="w-7 h-7 text-[#2D7A5F]" />
                     </div>
                   </div>
@@ -363,7 +258,7 @@ export default function InsuranceCalculatorPage() {
                     {description}
                   </p>
 
-                  <div className="h-px bg-gradient-to-r from-[#2D7A5F]/20 via-[#2D7A5F]/10 to-transparent mb-4" />
+                  <div className="h-px bg-linear-to-r from-[#2D7A5F]/20 via-[#2D7A5F]/10 to-transparent mb-4" />
 
                   <div className="mb-4 flex-1">
                     <p className="text-[11px] uppercase tracking-wider text-[#2D7A5F]/60 mb-3">
@@ -372,7 +267,7 @@ export default function InsuranceCalculatorPage() {
                     <ul className="space-y-2">
                       {bullets.map((bullet: string, idx: number) => (
                         <li key={idx} className="flex items-start gap-3 text-sm text-[#6B6B6B]">
-                          <div className="w-4 h-4 rounded-full bg-[#2D7A5F]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <div className="w-4 h-4 rounded-full bg-[#2D7A5F]/10 flex items-center justify-center shrink-0 mt-0.5">
                             <CheckCircle className="w-3 h-3 text-[#2D7A5F]" />
                           </div>
                           <span className="leading-relaxed line-clamp-2" style={clampStyle(2)}>
@@ -399,20 +294,19 @@ export default function InsuranceCalculatorPage() {
 
           <div className="mt-10 sm:mt-12 bg-white rounded-3xl p-7 sm:p-8 shadow-lg border border-[#2D7A5F]/10">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-[#2D7A5F]/10 flex items-center justify-center">
+              <div className="shrink-0 w-12 h-12 rounded-xl bg-[#2D7A5F]/10 flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-[#2D7A5F]" />
               </div>
               <div>
                 <h3 className="text-xl text-[#1A1A1A] mb-3">
-                  {texts.calc_tip_title || "Wskazówka eksperta"}
+                  {texts.calc_tip_title}
                 </h3>
                 <p className="text-[#6B6B6B] leading-relaxed">
-                  {texts.calc_tip_desc || "Porównuj nie tylko cenę, ale i zakres: limity, udział własny i wyłączenia. W OC/AC różnice często wychodzą dopiero w szczegółach, a w turystycznym kluczowe są koszty leczenia oraz transport medyczny. Jeśli masz wątpliwości — zadzwoń, pomożemy wybrać najlepszy wariant."}
+                  {texts.calc_tip_desc}
                 </p>
               </div>
             </div>
           </div>
-
         </div>
       </section>
     </main>

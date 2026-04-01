@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   HelpCircle,
@@ -7,7 +7,6 @@ import {
   ChevronDown,
   Search,
   ArrowRight,
-  Loader2,
   ShieldCheck,
   Car,
   Home,
@@ -17,6 +16,8 @@ import {
   Heart,
   FileText,
 } from "lucide-react";
+
+import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA WORDPRESS ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
@@ -36,11 +37,14 @@ interface FAQCategoryConfig {
   acfPrefix: string; // np. "faq_kat1"
 }
 
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
+
 // --- STAŁE KATEGORIE (ikony + etykiety w kodzie, treści z ACF) ---
 const CATEGORY_CONFIG: FAQCategoryConfig[] = [
   { id: "ogolne",        icon: ShieldCheck, label: "Ogólne",                  acfPrefix: "faq_kat1" },
   { id: "komunikacyjne", icon: Car,         label: "Komunikacyjne",           acfPrefix: "faq_kat2" },
-  { id: "majatkowe",     icon: Home,        label: "Majątkowe",              acfPrefix: "faq_kat3" },
+  { id: "majatkowe",     icon: Home,        label: "Majątkowe",               acfPrefix: "faq_kat3" },
   { id: "rolne",         icon: Tractor,     label: "Rolne",                   acfPrefix: "faq_kat4" },
   { id: "firmowe",       icon: Briefcase,   label: "Firmowe",                 acfPrefix: "faq_kat5" },
   { id: "turystyczne",   icon: Plane,       label: "Turystyczne",             acfPrefix: "faq_kat6" },
@@ -51,7 +55,7 @@ const CATEGORY_CONFIG: FAQCategoryConfig[] = [
 const NUM_QUESTIONS = 10;
 
 // --- PARSOWANIE ACF → pytania ---
-function parseQuestions(acf: any, prefix: string): FAQItem[] {
+function parseQuestions(acf: AcfData, prefix: string): FAQItem[] {
   const items: FAQItem[] = [];
   for (let q = 1; q <= NUM_QUESTIONS; q++) {
     const pytanie = acf[`${prefix}_p${q}`];
@@ -90,7 +94,7 @@ function AccordionItem({
         </span>
         <div
           className={`
-            flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300
+            shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300
             ${isOpen ? "bg-[#2D7A5F] text-white rotate-180" : "bg-[#2D7A5F]/10 text-[#2D7A5F]"}
           `}
         >
@@ -118,17 +122,21 @@ function AccordionItem({
 
 // --- GŁÓWNY KOMPONENT ---
 export default function FAQPage() {
-  const [global, setGlobal] = useState<any>({});
-  const [acf, setAcf] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [global, setGlobal] = useState<GlobalData>({});
+  const [acf, setAcf] = useState<AcfData | null>(null);
+
+  const { loading: loadingAcf, fetchWithLoader: fetchAcf } = usePageLoader();
+  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
+
+  const isLoading = loadingAcf || loadingGlobal;
 
   const [activeCategoryIdx, setActiveCategoryIdx] = useState(0);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [searchQuery, setSearchQuery] = useState("");
 
   // 1. Ustawienia globalne
-  useEffect(() => {
-    (async () => {
+  const loadGlobalData = useCallback(() => {
+    fetchGlobalReq(async () => {
       try {
         const res = await fetch(
           `${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`
@@ -140,16 +148,13 @@ export default function FAQPage() {
       } catch (e) {
         console.error("FAQ global error:", e);
       }
-    })();
-  }, []);
+    });
+  }, [fetchGlobalReq]);
 
   // 2. Treści FAQ z ACF
-  useEffect(() => {
-    if (!FAQ_PAGE_ID) {
-      setLoading(false);
-      return;
-    }
-    (async () => {
+  const loadAcfData = useCallback(() => {
+    if (!FAQ_PAGE_ID) return;
+    fetchAcf(async () => {
       try {
         const res = await fetch(
           `${WP_BASE}/wp-json/wp/v2/pages/${FAQ_PAGE_ID}?_fields=acf`
@@ -160,11 +165,17 @@ export default function FAQPage() {
         }
       } catch (e) {
         console.error("FAQ fetch error:", e);
-      } finally {
-        setLoading(false);
       }
-    })();
-  }, []);
+    });
+  }, [fetchAcf]);
+
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  useEffect(() => {
+    loadAcfData();
+  }, [loadAcfData]);
 
   const phone = global.global_phone || "";
   const email = global.global_email || "";
@@ -238,13 +249,7 @@ export default function FAQPage() {
   }, [acf]);
 
   // --- LOADING ---
-  if (loading) {
-    return (
-      <main className="bg-[#F5F1E8] min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-[#2D7A5F] animate-spin" />
-      </main>
-    );
-  }
+  if (isLoading) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
@@ -308,7 +313,7 @@ export default function FAQPage() {
                       setSearchQuery(e.target.value);
                       setOpenIndex(null);
                     }}
-                    placeholder={acf?.faq_search_placeholder || "Szukaj..."}
+                    placeholder={acf?.faq_search_placeholder}
                     className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white pl-12 pr-4 py-3.5 sm:py-4 text-[#1A1A1A] placeholder:text-[#6B6B6B]/50 focus:border-[#2D7A5F] focus:ring-1 focus:ring-[#2D7A5F] outline-none transition-all shadow-sm"
                   />
                 </div>
@@ -376,7 +381,7 @@ export default function FAQPage() {
             <div className="max-w-xl mx-auto text-center py-12">
               <HelpCircle className="w-16 h-16 mx-auto mb-6 text-[#2D7A5F]/20" />
               <p className="text-[#6B6B6B] text-lg">
-                {acf?.faq_empty_text || ""}
+                {acf?.faq_empty_text}
               </p>
               {(phone || email) && (
                 <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
@@ -403,7 +408,7 @@ export default function FAQPage() {
 
           {/* CTA */}
           {(acf?.faq_cta_title || acf?.faq_cta_desc) && (
-            <div className="mt-14 sm:mt-20 bg-gradient-to-br from-[#2D7A5F] to-[#1F5A43] rounded-3xl p-8 sm:p-10 lg:p-12 text-white shadow-2xl text-center">
+            <div className="mt-14 sm:mt-20 bg-linear-to-br from-[#2D7A5F] to-[#1F5A43] rounded-3xl p-8 sm:p-10 lg:p-12 text-white shadow-2xl text-center">
               {acf.faq_cta_title && (
                 <h3 className="text-2xl sm:text-3xl mb-3">{acf.faq_cta_title}</h3>
               )}
@@ -426,7 +431,7 @@ export default function FAQPage() {
                   to="/kontakt"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-transparent px-7 py-4 hover:bg-white/10 transition-colors"
                 >
-                  {acf?.faq_cta_btn || "Kontakt"} <ArrowRight className="w-4 h-4" />
+                  {acf?.faq_cta_btn} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>

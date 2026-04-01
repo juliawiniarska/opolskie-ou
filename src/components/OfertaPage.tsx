@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -12,85 +12,42 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { PageLoader, usePageLoader } from "../GlobalContext";
+
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
-const OFFERS_PAGE_ID = 2690; // <--- WPISZ TU ID STRONY "[EDYCJA] Oferty"
-const GLOBAL_SETTINGS_ID = 2756; // <--- ID strony Globalnej
+const OFFERS_PAGE_ID = 2690; 
+const GLOBAL_SETTINGS_ID = 2756; 
 
-type Offer = {
+type OfferStructure = {
   id: number; // 1-6
   slug: string;
   icon: LucideIcon;
-  // Domyślne wartości (gdyby API nie działało)
-  defaultTitle: string;
-  defaultSubtitle: string;
-  defaultDesc: string;
-  defaultFeatures: string[];
 };
 
-// Struktura "szkieletu" - ikony i slugi są stałe
-const offersStructure: Offer[] = [
-  {
-    id: 1,
-    slug: "ubezpieczenia-komunikacyjne",
-    icon: Car,
-    defaultTitle: "Ubezpieczenia komunikacyjne",
-    defaultSubtitle: "OC, AC, NNW, Assistance",
-    defaultDesc: "Kompleksowa ochrona Twojego pojazdu.",
-    defaultFeatures: ["Porównanie ofert 20+ firm", "Rabaty dla bezpiecznych kierowców", "Pomoc w razie kolizji"],
-  },
-  {
-    id: 2,
-    slug: "ubezpieczenia-osobowe",
-    icon: Heart,
-    defaultTitle: "Ubezpieczenia osobowe",
-    defaultSubtitle: "Życie, zdrowie, bezpieczeństwo",
-    defaultDesc: "Zabezpieczenie dla Ciebie i rodziny.",
-    defaultFeatures: ["Ubezpieczenie na życie", "Pakiety zdrowotne", "Ochrona NNW"],
-  },
-  {
-    id: 3,
-    slug: "ubezpieczenia-majatkowe",
-    icon: Home,
-    defaultTitle: "Ubezpieczenia majątkowe",
-    defaultSubtitle: "Dom, mieszkanie",
-    defaultDesc: "Ochrona Twojego majątku.",
-    defaultFeatures: ["Ubezpieczenie budynku", "Ochrona wyposażenia", "Assistance domowy"],
-  },
-  {
-    id: 4,
-    slug: "ubezpieczenia-turystyczne",
-    icon: Plane,
-    defaultTitle: "Ubezpieczenia turystyczne",
-    defaultSubtitle: "Wyjazdy, wakacje, podróże",
-    defaultDesc: "Bezpieczne podróże po świecie.",
-    defaultFeatures: ["Koszty leczenia za granicą", "Ubezpieczenie bagażu", "OC w podróży"],
-  },
-  {
-    id: 5,
-    slug: "ubezpieczenia-firmowe",
-    icon: Briefcase,
-    defaultTitle: "Ubezpieczenia firmowe",
-    defaultSubtitle: "Ochrona Twojego biznesu",
-    defaultDesc: "Kompleksowa ochrona firmy.",
-    defaultFeatures: ["OC działalności", "Mienie firmowe", "Ubezpieczenia pracowników"],
-  },
-  {
-    id: 6,
-    slug: "ubezpieczenia-rolne",
-    icon: Tractor,
-    defaultTitle: "Ubezpieczenia rolne",
-    defaultSubtitle: "Ochrona Twojego gospodarstwa",
-    defaultDesc: "Specjalizacja w sektorze rolnym.",
-    defaultFeatures: ["Ubezpieczenie upraw", "Ochrona budynków", "Maszyny i sprzęt"],
-  },
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
+
+// Struktura techniczna - ikony i slugi są stałe, treści płyną z ACF
+const offersStructure: OfferStructure[] = [
+  { id: 1, slug: "ubezpieczenia-komunikacyjne", icon: Car },
+  { id: 2, slug: "ubezpieczenia-osobowe", icon: Heart },
+  { id: 3, slug: "ubezpieczenia-majatkowe", icon: Home },
+  { id: 4, slug: "ubezpieczenia-turystyczne", icon: Plane },
+  { id: 5, slug: "ubezpieczenia-firmowe", icon: Briefcase },
+  { id: 6, slug: "ubezpieczenia-rolne", icon: Tractor },
 ];
 
 export default function OfertaPage() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [texts, setTexts] = useState<any>({});
-  const [global, setGlobal] = useState<any>({});
+  const [texts, setTexts] = useState<AcfData>({});
+  const [global, setGlobal] = useState<GlobalData>({});
+
+  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
+  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
+
+  const isLoading = loadingTexts || loadingGlobal;
 
   // Mobile detection
   useEffect(() => {
@@ -101,8 +58,8 @@ export default function OfertaPage() {
   }, []);
 
   // Fetch Page Data
-  useEffect(() => {
-    const fetchPage = async () => {
+  const loadTextsData = useCallback(() => {
+    fetchTexts(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${OFFERS_PAGE_ID}?_fields=acf`);
         if (res.ok) {
@@ -110,14 +67,12 @@ export default function OfertaPage() {
           if (json.acf) setTexts(json.acf);
         }
       } catch (e) { console.error(e); }
-    };
-    fetchPage();
-  }, []);
+    });
+  }, [fetchTexts]);
 
   // Fetch Global Data
-  useEffect(() => {
-    const fetchGlobal = async () => {
-      if (GLOBAL_SETTINGS_ID === 2756) return;
+  const loadGlobalData = useCallback(() => {
+    fetchGlobalReq(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
@@ -125,11 +80,17 @@ export default function OfertaPage() {
           if (json.acf) setGlobal(json.acf);
         }
       } catch (e) { console.error(e); }
-    };
-    fetchGlobal();
-  }, []);
+    });
+  }, [fetchGlobalReq]);
 
-  const getPhone = () => global.global_phone || "739 079 729";
+  useEffect(() => {
+    loadTextsData();
+    loadGlobalData();
+  }, [loadTextsData, loadGlobalData]);
+
+  const phone = global.global_phone || "";
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
@@ -146,28 +107,30 @@ export default function OfertaPage() {
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#2D7A5F]/10">
                 <Shield className="h-3.5 w-3.5 text-[#2D7A5F]" />
               </span>
-              {texts.offer_hero_badge || "Oferta ubezpieczeń"}
+              {texts.offer_hero_badge}
             </p>
 
             <h1 className="mt-6 text-[#2D7A5F] text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-tight">
-              {texts.offer_hero_title || "Wszystko czego potrzebujesz w jednym miejscu"}
+              {texts.offer_hero_title}
             </h1>
             <p className="mt-5 text-[#2D7A5F]/70 text-base sm:text-lg lg:text-xl leading-relaxed">
-              {texts.offer_hero_desc || "Wybierz kategorię i przejdź do szczegółów. Porównujemy oferty i dobieramy polisę do Twoich potrzeb."}
+              {texts.offer_hero_desc}
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a
-                href={`tel:${getPhone().replace(/\s/g, "")}`}
-                className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl bg-[#2D7A5F] px-8 py-4 text-white shadow-xl shadow-[#2D7A5F]/25 transition-all hover:bg-[#1F5A43]"
-              >
-                Zadzwoń: {getPhone()}
-              </a>
+              {phone && (
+                <a
+                  href={`tel:${phone.replace(/\s/g, "")}`}
+                  className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl bg-[#2D7A5F] px-8 py-4 text-white shadow-xl shadow-[#2D7A5F]/25 transition-all hover:bg-[#1F5A43]"
+                >
+                  Zadzwoń: {phone}
+                </a>
+              )}
               <a
                 href="/#kalkulator"
                 className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border-2 border-[#2D7A5F] bg-white px-8 py-4 text-[#2D7A5F] shadow-lg hover:bg-[#2D7A5F]/5 transition-colors"
               >
-                {texts.offer_btn_calc || "Kalkulator online"}
+                {texts.offer_btn_calc}
               </a>
             </div>
           </div>
@@ -178,14 +141,14 @@ export default function OfertaPage() {
               const Icon = o.icon;
               const isActiveMobile = isMobile && activeIndex === index;
 
-              // Pobieranie danych z ACF
-              const title = texts[`offer_${o.id}_title`] || o.defaultTitle;
-              const subtitle = texts[`offer_${o.id}_subtitle`] || o.defaultSubtitle;
-              const desc = texts[`offer_${o.id}_short_desc`] || o.defaultDesc;
+              // Pobieranie danych z ACF (brak fallbacków tekstowych w kodzie)
+              const title = texts[`offer_${o.id}_title`];
+              const subtitle = texts[`offer_${o.id}_subtitle`];
+              const desc = texts[`offer_${o.id}_short_desc`];
               const rawFeat = texts[`offer_${o.id}_list_features`];
               const features = rawFeat 
                 ? rawFeat.split('\n').filter((l: string) => l.trim() !== '') 
-                : o.defaultFeatures;
+                : [];
 
               return (
                 <Link
@@ -288,10 +251,6 @@ export default function OfertaPage() {
                 </Link>
               );
             })}
-          </div>
-
-          <div className="mt-14 lg:mt-16">
-            {/* Shortcodes */}
           </div>
         </div>
       </section>

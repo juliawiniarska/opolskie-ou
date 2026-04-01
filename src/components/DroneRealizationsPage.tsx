@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   ArrowRight,
   Mail,
@@ -10,6 +10,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { PageLoader, usePageLoader } from "../GlobalContext";
+
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 const DRONE_PAGE_ID = 2708; // <-- TU WPISZ ID STRONY "REALIZACJE"
@@ -18,6 +20,9 @@ const GLOBAL_SETTINGS_ID = 2756; // ID ustawień globalnych
 const CONTACT_URL = "https://www.opolskieubezpieczenia.pl/kontakt/";
 const INSTAGRAM_SCRIPT_URL = "https://cdn.trustindex.io/loader-feed.js?a055963611ea6261358618116af";
 
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
+
 function FeatureCard({
   category,
   title,
@@ -25,9 +30,9 @@ function FeatureCard({
   Icon,
   actions,
 }: {
-  category: string;
-  title: string;
-  description: string;
+  category?: string;
+  title?: string;
+  description?: string;
   Icon: React.ComponentType<{ className?: string }>;
   actions?: React.ReactNode;
 }) {
@@ -44,7 +49,7 @@ function FeatureCard({
 
       {/* icon */}
       <div className="relative mb-4 h-14 flex items-center">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D7A5F]/10 to-[#2D7A5F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+        <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-[#2D7A5F]/10 to-[#2D7A5F]/5 flex items-center justify-center group-hover:scale-110 transition-transform">
           <Icon className="w-7 h-7 text-[#2D7A5F]" />
         </div>
       </div>
@@ -70,12 +75,17 @@ export default function DroneRealizationsPage() {
   const widgetContainerRef = useRef<HTMLDivElement>(null);
   
   // Stany na dane
-  const [texts, setTexts] = useState<any>({});
-  const [global, setGlobal] = useState<any>({});
+  const [texts, setTexts] = useState<AcfData>({});
+  const [global, setGlobal] = useState<GlobalData>({});
+
+  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
+  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
+
+  const isLoading = loadingTexts || loadingGlobal;
 
   // 1. Pobieranie treści strony REALIZACJE
-  useEffect(() => {
-    const fetchPage = async () => {
+  const loadTextsData = useCallback(() => {
+    fetchTexts(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${DRONE_PAGE_ID}?_fields=acf`);
         if (res.ok) {
@@ -85,13 +95,12 @@ export default function DroneRealizationsPage() {
       } catch (e) {
         console.error("DronePage fetch error:", e);
       }
-    };
-    fetchPage();
-  }, []);
+    });
+  }, [fetchTexts]);
 
   // 2. Pobieranie danych globalnych (telefon, email)
-  useEffect(() => {
-    const fetchGlobal = async () => {
+  const loadGlobalData = useCallback(() => {
+    fetchGlobalReq(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
@@ -101,11 +110,18 @@ export default function DroneRealizationsPage() {
       } catch (e) {
         console.error("Global settings error:", e);
       }
-    };
-    fetchGlobal();
-  }, []);
+    });
+  }, [fetchGlobalReq]);
 
-  const phone = global.global_phone || "739 079 729";
+  useEffect(() => {
+    loadTextsData();
+  }, [loadTextsData]);
+
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  const phone = global.global_phone || "";
   
   // --- ŁADOWANIE SKRYPTU TRUSTINDEX ---
   useEffect(() => {
@@ -117,6 +133,8 @@ export default function DroneRealizationsPage() {
       widgetContainerRef.current.appendChild(script);
     }
   }, []);
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
@@ -134,38 +152,34 @@ export default function DroneRealizationsPage() {
               </div>
 
               <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
-                {texts.drone_hero_title || "Realizacje z lotu drona"}
+                {texts.drone_hero_title}
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8 sm:mb-10 max-w-3xl">
-                {texts.drone_hero_desc || "Prawdziwe ujęcia z gospodarstw i firm. Dron pomaga dokumentować stan upraw, monitorować ryzyka."}
+                {texts.drone_hero_desc}
               </p>
-
-             
             </div>
 
             <div className="lg:col-span-4 lg:flex lg:items-center">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl w-full">
                 <h3 className="text-white text-xl sm:text-2xl mb-3">
-                  {texts.drone_contact_title || "Wyceń polisę online"}
+                  {texts.drone_contact_title}
                 </h3>
                 <p className="text-white/80 leading-relaxed mb-7 sm:mb-8">
-                  {texts.drone_contact_desc || "20+ towarzystw w jednym miejscu. Szybka wycena, lokalna obsługa i pomoc w formalnościach."}
-                  <br />
-                  <span className="inline-block mt-2 text-white/70">
-                    Twój specjalista – Wojciech Kurzeja
-                  </span>
+                  {texts.drone_contact_desc}
                 </p>
 
                 <div className="space-y-3 sm:space-y-4">
-                  <a
-                    href={`tel:${phone.replace(/\s/g, "")}`}
-                    className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] rounded-xl transition-all shadow-lg group"
-                  >
-                    <Phone className="w-5 h-5" />
-                    <span className="font-medium">{phone}</span>
-                    <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
-                  </a>
+                  {phone && (
+                    <a
+                      href={`tel:${phone.replace(/\s/g, "")}`}
+                      className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] rounded-xl transition-all shadow-lg group"
+                    >
+                      <Phone className="w-5 h-5" />
+                      <span className="font-medium">{phone}</span>
+                      <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
+                    </a>
+                  )}
 
                   <a
                     href={CONTACT_URL}
@@ -198,31 +212,29 @@ export default function DroneRealizationsPage() {
             {/* 3 kafle – wszystko w nich */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               <FeatureCard
-                category={texts.drone_feat_1_cat || "Rolnictwo & technologia"}
-                title={texts.drone_feat_1_title || "Dlaczego dron w rolnictwie?"}
+                category={texts.drone_feat_1_cat}
+                title={texts.drone_feat_1_title}
                 Icon={Wheat}
-                description={texts.drone_feat_1_desc || "Rolnictwo coraz częściej korzysta z nowoczesnych technologii. Dron to nie tylko efektowne ujęcia z powietrza – to praktyczne narzędzie, które pomaga dokumentować stan upraw, monitorować pola i maszyny oraz szybciej reagować na szkody spowodowane pogodą czy innymi zagrożeniami. Dzięki temu rolnik zyskuje realną wiedzę i kontrolę nad gospodarstwem."}
+                description={texts.drone_feat_1_desc}
               />
 
               <FeatureCard
-                category={texts.drone_feat_2_cat || "Bezpieczniej i konkretniej"}
-                title={texts.drone_feat_2_title || "Jak wspieramy Twoje ubezpieczenia"}
+                category={texts.drone_feat_2_cat}
+                title={texts.drone_feat_2_title}
                 Icon={ShieldCheck}
-                description={texts.drone_feat_2_desc || "Dokładne zdjęcia i nagrania z drona pozwalają lepiej ocenić ryzyka, które mogą wystąpić w gospodarstwie czy firmie. To bezpośrednio przekłada się na dobór odpowiedniej polisy i wysokość składki."}
+                description={texts.drone_feat_2_desc}
               />
 
               <FeatureCard
-                category={texts.drone_feat_3_cat || "Portfolio"}
-                title={texts.drone_feat_3_title || "Zobacz nasze realizacje z lotu ptaka"}
+                category={texts.drone_feat_3_cat}
+                title={texts.drone_feat_3_title}
                 Icon={Video}
-                description={texts.drone_feat_3_desc || "Nic nie przemawia lepiej niż obraz. Poniżej znajdziesz przykłady naszych nagrań i zdjęć wykonanych z drona w gospodarstwach rolnych i firmach."}
-                
+                description={texts.drone_feat_3_desc}
               />
             </div>
 
             {/* SEKCJA FEED Z INSTAGRAMA (WIDGET TRUSTINDEX) */}
             <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10 animate-in fade-in zoom-in duration-500">
-              {/* ZMIANA TUTAJ: flex-col na mobilnym, flex-row na większym, centrowanie na mobilnym */}
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
                 <div className="shrink-0 w-12 h-12 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 flex items-center justify-center">
                   <Sparkles className="w-6 h-6 text-[#2D7A5F]" />
@@ -231,11 +243,11 @@ export default function DroneRealizationsPage() {
                 <div className="min-w-0 w-full">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 flex-wrap">
                     <h3 className="text-xl sm:text-2xl text-[#1A1A1A]">
-                      {texts.drone_insta_title || "Najnowsze ujęcia"}
+                      {texts.drone_insta_title}
                     </h3>
                   </div>
 
-                  {/* KONTENER NA SKRYPT - DODAŁEM overflow-hidden i w-full */}
+                  {/* KONTENER NA SKRYPT */}
                   <div className="mt-6 w-full flex justify-center overflow-hidden" ref={widgetContainerRef}>
                      {/* Trustindex wstrzyknie feed tutaj automatycznie */}
                   </div>
@@ -250,10 +262,10 @@ export default function DroneRealizationsPage() {
 
               <div className="relative text-center">
                 <h2 className="text-2xl sm:text-3xl text-white">
-                  {texts.drone_cta_title || "Uzyskaj indywidualną ofertę ubezpieczeniową"}
+                  {texts.drone_cta_title}
                 </h2>
                 <p className="mt-3 text-white/85">
-                   {texts.drone_cta_desc || "Skontaktuj się z nami już dziś, aby zapewnić sobie i swoim bliskim maksimum bezpieczeństwa."}
+                   {texts.drone_cta_desc}
                 </p>
 
                 <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
@@ -265,12 +277,14 @@ export default function DroneRealizationsPage() {
                   >
                     Zamów darmową wycenę <ArrowRight className="w-4 h-4 ml-2" />
                   </a>
-                  <a
-                    href={`tel:${phone.replace(/\s/g, "")}`}
-                    className="inline-flex items-center justify-center rounded-2xl bg-white/10 text-white border border-white/25 px-7 py-4 hover:bg-white/15 transition"
-                  >
-                    Zadzwoń: {phone}
-                  </a>
+                  {phone && (
+                    <a
+                      href={`tel:${phone.replace(/\s/g, "")}`}
+                      className="inline-flex items-center justify-center rounded-2xl bg-white/10 text-white border border-white/25 px-7 py-4 hover:bg-white/15 transition"
+                    >
+                      Zadzwoń: {phone}
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

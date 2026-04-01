@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -15,6 +15,8 @@ import {
   MessageCircle,
   Send,
 } from "lucide-react";
+
+import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
@@ -60,7 +62,7 @@ type Comment = {
   text: string;
 };
 
-// NOWE: Typ dla pól ACF (box boczny)
+// Typ dla pól ACF (box boczny)
 type SinglePostACF = {
   single_cta_title?: string;
   single_cta_desc?: string;
@@ -69,12 +71,12 @@ type SinglePostACF = {
   single_cta_footer?: string;
 };
 
-// ---- ZMIANA 1: Funkcja naprawiająca URL (dodaje /wp/ jeśli brakuje) ----
+// ---- Funkcja naprawiająca URL (dodaje /wp/ jeśli brakuje) ----
 const fixImgUrl = (url?: string | null) => {
   if (!url) return null;
   // Jeśli URL zawiera /wp-content/ ale NIE MA przed nim /wp/, to dodajemy
-  if (url.includes('/wp-content/') && !url.includes('/wp/wp-content/')) {
-    return url.replace('/wp-content/', '/wp/wp-content/');
+  if (url.includes("/wp-content/") && !url.includes("/wp/wp-content/")) {
+    return url.replace("/wp-content/", "/wp/wp-content/");
   }
   return url;
 };
@@ -112,7 +114,7 @@ const formatDatePL = (iso: string) => {
   }
 };
 
-// delikatne “upiększenie” HTML z WP + ZMIANA 2: Naprawa zdjęć w treści
+// delikatne “upiększenie” HTML z WP + Naprawa zdjęć w treści
 const styleWpHtml = (html: string) => {
   if (!html) return "";
   if (typeof document === "undefined") return html;
@@ -173,18 +175,18 @@ const styleWpHtml = (html: string) => {
     fig.classList.add("my-8");
   });
 
-  // ZMIANA 2: Naprawiamy SRC obrazków wewnątrz treści
+  // Naprawiamy SRC obrazków wewnątrz treści
   doc.querySelectorAll("img").forEach((img) => {
     img.classList.add("rounded-2xl", "shadow-lg", "border", "border-[#2D7A5F]/10", "block", "mx-auto");
     img.setAttribute("loading", "lazy");
-    
+
     // Pobieramy obecny src i naprawiamy go funkcją fixImgUrl
     const currentSrc = img.getAttribute("src");
     if (currentSrc) {
-        const fixedSrc = fixImgUrl(currentSrc);
-        if (fixedSrc) {
-            img.setAttribute("src", fixedSrc);
-        }
+      const fixedSrc = fixImgUrl(currentSrc);
+      if (fixedSrc) {
+        img.setAttribute("src", fixedSrc);
+      }
     }
   });
 
@@ -265,26 +267,25 @@ export default function BlogPostPage() {
   const [sending, setSending] = useState(false);
   const [sentOk, setSentOk] = useState(false);
 
-  // NOWE: Stan dla tekstów edytowalnych (ACF)
+  // Stan dla tekstów edytowalnych (ACF) i loadera
   const [texts, setTexts] = useState<SinglePostACF>({});
+  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
 
-  // 0) Pobieranie tekstów z ACF (dla strony kontenera)
-  useEffect(() => {
-    const fetchTexts = async () => {
-      try {
-        const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_SETTINGS_ID}?_fields=acf`;
-        const res = await fetch(url);
-        if (!res.ok) return;
+  // 0) Pobieranie tekstów z ACF przez Global Loadera
+  const loadTextsData = useCallback(() => {
+    fetchTexts(async () => {
+      const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_SETTINGS_ID}?_fields=acf`;
+      const res = await fetch(url);
+      if (res.ok) {
         const json = await res.json();
-        if (json.acf) {
-          setTexts(json.acf);
-        }
-      } catch (e) {
-        console.error("Błąd pobierania tekstów ACF", e);
+        if (json.acf) setTexts(json.acf);
       }
-    };
-    fetchTexts();
-  }, []);
+    });
+  }, [fetchTexts]);
+
+  useEffect(() => {
+    loadTextsData();
+  }, [loadTextsData]);
 
   useEffect(() => {
     let aborted = false;
@@ -314,13 +315,13 @@ export default function BlogPostPage() {
 
         const title = decodeHtml(p.title?.rendered ?? "");
         const excerpt = decodeHtml(stripHtml(p.excerpt?.rendered ?? ""));
-        
-        // ZMIANA 3: Naprawa URL dla zdjęcia wyróżniającego (header)
+
+        // Naprawa URL dla zdjęcia wyróżniającego (header)
         const rawFeaturedImg = p._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
         const featuredImg = fixImgUrl(rawFeaturedImg);
 
         const rawHtml = p.content?.rendered ?? "";
-        // ZMIANA 4: styleWpHtml teraz też naprawia URL obrazków w treści
+        // styleWpHtml teraz też naprawia URL obrazków w treści
         const styledHtml = styleWpHtml(rawHtml);
 
         const mapped: Post = {
@@ -470,14 +471,15 @@ export default function BlogPostPage() {
         // ign
       }
     } catch {
-      setCommentError(
-        "Nie udało się wysłać komentarza."
-      );
+      setCommentError("Nie udało się wysłać komentarza.");
     } finally {
       setSending(false);
       window.setTimeout(() => setSentOk(false), 2000);
     }
   };
+
+  // Pokaż pełnoekranowy PageLoader, jeśli ładują się teksty z ACF lub post z WordPressa
+  if (loadingTexts || loading) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
@@ -496,7 +498,7 @@ export default function BlogPostPage() {
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight">
-                {loading ? "Ładuję wpis…" : post?.title ?? "Wpis"}
+                {post?.title ?? "Wpis"}
               </h1>
 
               <div className="mt-5 flex flex-wrap items-center gap-3 text-white/80">
@@ -523,22 +525,19 @@ export default function BlogPostPage() {
 
             <div className="lg:col-span-4">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl">
-                {/* EDYTOWALNE: Tytuł */}
                 <h3 className="text-white text-lg sm:text-xl mb-2">
-                  {texts.single_cta_title || "Umów konsultację"}
+                  {texts.single_cta_title}
                 </h3>
-                {/* EDYTOWALNE: Opis */}
                 <p className="text-white/80 text-sm leading-relaxed mb-6">
-                  {texts.single_cta_desc || "Zadzwoń lub napisz — przygotujemy warianty i przejdziemy przez szczegóły."}
+                  {texts.single_cta_desc}
                 </p>
 
                 <div className="space-y-3">
                   <a
-                    href={`tel:${(texts.single_phone || "739079729").replace(/\s/g, "")}`}
+                    href={`tel:${(texts.single_phone || "").replace(/\s/g, "")}`}
                     className="w-full inline-flex items-center justify-center rounded-xl bg-white text-[#2D7A5F] px-5 py-3 font-medium hover:bg-[#F5F1E8] transition-colors"
                   >
-                    {/* EDYTOWALNE: Telefon */}
-                    <Phone className="w-4 h-4 mr-2" /> Zadzwoń: {texts.single_phone || "739 079 729"}
+                    <Phone className="w-4 h-4 mr-2" /> Zadzwoń: {texts.single_phone}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </a>
                   <a
@@ -547,14 +546,12 @@ export default function BlogPostPage() {
                     rel="noopener noreferrer"
                     className="w-full inline-flex items-center justify-center rounded-xl border border-white/30 bg-transparent text-white px-5 py-3 hover:bg-white/10 transition-colors"
                   >
-                    {/* EDYTOWALNE: Przycisk mail */}
-                    <Mail className="w-4 h-4 mr-2" /> {texts.single_email_btn || "Skontaktuj się z nami"}
+                    <Mail className="w-4 h-4 mr-2" /> {texts.single_email_btn}
                   </a>
                 </div>
 
                 <div className="mt-6 pt-5 border-t border-white/20 text-xs text-white/70">
-                  {/* EDYTOWALNE: Stopka */}
-                  {texts.single_cta_footer || "Odpowiemy i dobierzemy najlepszą opcję do budżetu i potrzeb."}
+                  {texts.single_cta_footer}
                 </div>
               </div>
             </div>
@@ -580,15 +577,7 @@ export default function BlogPostPage() {
             </div>
           )}
 
-          {loading ? (
-            <div className="bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10 animate-pulse">
-              <div className="h-8 bg-[#2D7A5F]/10 rounded-xl w-2/3 mb-4" />
-              <div className="h-5 bg-[#2D7A5F]/10 rounded-xl w-full mb-2" />
-              <div className="h-5 bg-[#2D7A5F]/10 rounded-xl w-11/12 mb-2" />
-              <div className="h-5 bg-[#2D7A5F]/10 rounded-xl w-10/12 mb-6" />
-              <div className="h-64 bg-[#2D7A5F]/10 rounded-2xl w-full" />
-            </div>
-          ) : post ? (
+          {post ? (
             <article className="max-w-[900px] mx-auto">
               {post.image && (
                 <div className="bg-white rounded-3xl p-3 sm:p-4 shadow-lg border border-[#2D7A5F]/10 mb-8">
@@ -689,7 +678,6 @@ export default function BlogPostPage() {
                         className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25 resize-none"
                         placeholder="Napisz komentarz…"
                       />
-                      
                     </div>
 
                     <button

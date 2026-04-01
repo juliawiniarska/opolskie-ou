@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   ArrowRight,
@@ -16,11 +16,16 @@ import {
   Loader2,
 } from "lucide-react";
 
+import { PageLoader, usePageLoader } from "../GlobalContext";
+
 // --- KONFIGURACJA WORDPRESS ---
 const WP_DOMAIN = "https://www.opolskieubezpieczenia.pl";
 const CONTACT_PAGE_ID = 2710; // Strona Kontakt
 const GLOBAL_SETTINGS_ID = 2756; // Ustawienia Globalne
 const WP_FORM_ID = "2675"; // ID Formularza w CF7
+
+type AcfData = Record<string, string | undefined>;
+type GlobalData = Record<string, string | undefined>;
 
 // --- KOMPONENT FORMULARZA ---
 function SimpleContactForm({ 
@@ -49,7 +54,6 @@ function SimpleContactForm({
     wpFormData.append('your-email', formData.get('email') as string);
     wpFormData.append('your-phone', formData.get('phone') as string);
     
-    // USUNIĘTO PRZEKAZYWANIE TEMATU (bo nie ma go w Twoim formularzu)
     // Treść wiadomości
     wpFormData.append('your-message', formData.get('message') as string);
     
@@ -103,14 +107,15 @@ function SimpleContactForm({
           setErrorMsg(json.message || "Wystąpił błąd po stronie serwera.");
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Network/Fetch Error:", err);
       setError(true);
       
-      if (String(err).includes("Failed to fetch")) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes("Failed to fetch")) {
         setErrorMsg("Błąd połączenia. Spróbuj ponownie później.");
       } else {
-        setErrorMsg(err.message || "Błąd połączenia. Spróbuj ponownie później.");
+        setErrorMsg(errorMessage || "Błąd połączenia. Spróbuj ponownie później.");
       }
     } finally {
       setLoading(false);
@@ -203,7 +208,6 @@ function SimpleContactForm({
             required
             name="message"
             id="message"
-            // Tutaj wpisuje się automatyczna wiadomość z pakietu
             defaultValue={initialMessage}
             key={initialMessage} 
             placeholder="W czym możemy pomóc? Opisz sprawę..."
@@ -405,8 +409,13 @@ function MediaPanel({
 
 // --- GŁÓWNY KOMPONENT STRONY ---
 export default function ContactPage() {
-  const [texts, setTexts] = useState<any>({});
-  const [global, setGlobal] = useState<any>({});
+  const [texts, setTexts] = useState<AcfData>({});
+  const [global, setGlobal] = useState<GlobalData>({});
+  
+  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
+  const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
+  
+  const isLoading = loadingTexts || loadingGlobal;
   
   // LOGIKA ODBIERANIA DANYCH Z PAKIETU I SCROLLOWANIA
   const location = useLocation();
@@ -425,8 +434,8 @@ export default function ContactPage() {
   }, [state]);
 
   // 1. Pobieranie treści strony KONTAKT (ID 2710)
-  useEffect(() => {
-    const fetchPage = async () => {
+  const loadTextsData = useCallback(() => {
+    fetchTexts(async () => {
       try {
         const res = await fetch(`${WP_DOMAIN}/wp/wp-json/wp/v2/pages/${CONTACT_PAGE_ID}?_fields=acf`);
         if (res.ok) {
@@ -436,13 +445,12 @@ export default function ContactPage() {
       } catch (e) {
         console.error("ContactPage fetch error:", e);
       }
-    };
-    fetchPage();
-  }, []);
+    });
+  }, [fetchTexts]);
 
   // 2. Pobieranie ustawień GLOBALNYCH (ID 2756)
-  useEffect(() => {
-    const fetchGlobal = async () => {
+  const loadGlobalData = useCallback(() => {
+    fetchGlobalReq(async () => {
       try {
         const res = await fetch(`${WP_DOMAIN}/wp/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
@@ -452,21 +460,30 @@ export default function ContactPage() {
       } catch (e) {
         console.error("Global settings error:", e);
       }
-    };
-    fetchGlobal();
-  }, []);
+    });
+  }, [fetchGlobalReq]);
+
+  useEffect(() => {
+    loadTextsData();
+  }, [loadTextsData]);
+
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
 
   // Dane kontaktowe z globala
-  const phone = global.global_phone || "739 079 729";
-  const email = global.global_email || "biuro@opolskieubezpieczenia.pl";
-  const address = global.global_address || "ul. Adama Mickiewicza lok. 14, 48-304 Nysa";
+  const phone = global.global_phone || "";
+  const email = global.global_email || "";
+  const address = global.global_address;
   
-  const socialFb = global.social_fb || "https://www.facebook.com/share/1C4NtbsaYY/?mibextid=wwXIfr";
-  const socialIg = global.social_ig || "https://www.instagram.com/opolskieubezpieczenia?igsh=MWR1ZDl1YnU4M3I4NA%3D%3Du0026utm_source=qr";
-  const socialYt = global.social_yt || "https://www.youtube.com/watch?v=UBk4Xk2rwJk";
+  const socialFb = global.social_fb || "";
+  const socialIg = global.social_ig || "";
+  const socialYt = global.social_yt || "";
 
   const mailto = `mailto:${email}`;
   const telHref = `tel:${phone.replace(/\s/g, "")}`;
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
@@ -484,11 +501,11 @@ export default function ContactPage() {
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-6 sm:mb-8">
-                {texts.contact_hero_title || "Kontakt"}
+                {texts.contact_hero_title}
               </h1>
 
               <p className="text-white/85 leading-relaxed max-w-3xl text-base sm:text-lg">
-                {texts.contact_hero_desc || "Masz pytania? Napisz lub zadzwoń — pomożemy dobrać najlepsze ubezpieczenie i przeprowadzimy przez formalności."}
+                {texts.contact_hero_desc}
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -496,16 +513,16 @@ export default function ContactPage() {
                   to="/oferta"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-[#2D7A5F] shadow-sm hover:bg-[#F5F1E8] transition"
                 >
-                  {texts.contact_btn_offer || "Zobacz ofertę"} <ArrowRight className="w-4 h-4" />
+                  {texts.contact_btn_offer} <ArrowRight className="w-4 h-4" />
                 </Link>
 
                 <a
-                  href={texts.contact_map_link || "https://maps.app.goo.gl/jvvjV6U89XR2LcnL9"}
+                  href={texts.contact_map_link}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 text-white border border-white/25 hover:bg-white/15 transition"
                 >
-                  {texts.contact_btn_map || "Otwórz mapę"} <ExternalLink className="w-4 h-4" />
+                  {texts.contact_btn_map} <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
             </div>
@@ -548,10 +565,10 @@ export default function ContactPage() {
         <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
           <div className="mb-10 sm:mb-14 text-center max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-4">
-              {texts.contact_form_title || "Masz pytania? Skontaktuj się z nami!"}
+              {texts.contact_form_title}
             </h2>
             <p className="text-base sm:text-lg text-[#6B6B6B]">
-              {texts.contact_form_desc || "Chętnie odpowiemy na Twoje pytania i pomożemy w wyborze najlepszych ubezpieczeń. Jesteśmy tutaj, aby wspierać Cię na każdym etapie."}
+              {texts.contact_form_desc}
             </p>
           </div>
 
@@ -586,7 +603,7 @@ export default function ContactPage() {
 
                 <Panel icon={MapPin} title="Adres">
                   <a
-                    href={texts.contact_map_link || "https://maps.app.goo.gl/jvvjV6U89XR2LcnL9"}
+                    href={texts.contact_map_link}
                     target="_blank"
                     rel="noreferrer noopener"
                     className="inline-flex items-center gap-2 text-[#2D7A5F] font-medium hover:opacity-80 no-underline"
@@ -603,7 +620,7 @@ export default function ContactPage() {
                   <div className="h-full flex flex-col min-h-0">
                     <div className="min-w-0 w-full mb-4">
                       <h3 className="text-xl sm:text-2xl text-[#1A1A1A] leading-tight">
-                        {texts.contact_media_title || "Aktualności i nagrania"}
+                        {texts.contact_media_title}
                       </h3>
                     </div>
                     
@@ -618,7 +635,7 @@ export default function ContactPage() {
                         <div className="mx-auto w-[96%] overflow-hidden rounded-2xl border border-[#2D7A5F]/10 bg-black">
                           <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
                             <iframe
-                              src={texts.contact_yt_embed || "https://www.youtube.com/embed/UBk4Xk2rwJk"}
+                              src={texts.contact_yt_embed}
                               title="YouTube video"
                               className="absolute inset-0 w-full h-full"
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -638,7 +655,7 @@ export default function ContactPage() {
           {/* MAPA */}
           <div className="mt-10 bg-white rounded-3xl p-3 sm:p-4 shadow-lg border border-[#2D7A5F]/10 overflow-hidden">
             <iframe
-              src={texts.contact_map_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d649881.6953256665!2d16.18518553125001!3d50.48578300000001!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4711c572599ab4ed%3A0xf0f770e9fbb664fb!2sMultiagencja%20Opolskie-Ubezpieczenia!5e0!3m2!1spl!2spl!4v1748727232162!5m2!1spl!2spl"}
+              src={texts.contact_map_embed}
               width="100%"
               height="450"
               style={{ border: 0, display: "block" }}

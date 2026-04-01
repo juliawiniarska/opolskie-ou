@@ -1,10 +1,13 @@
 import { Phone, ChevronDown, Menu, X } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 const GLOBAL_SETTINGS_ID = 2756;
+
+type GlobalData = Record<string, string | undefined>;
 
 const ofertaItems = [
   { label: "Ubezpieczenia komunikacyjne", slug: "ubezpieczenia-komunikacyjne" },
@@ -43,14 +46,15 @@ function useDropdown() {
   };
 
   const close = () => setOpen(false);
-  const toggle = () => setOpen((p) => !p);
 
-  return { open, onEnter, onLeave, close, toggle };
+  return { open, onEnter, onLeave, close };
 }
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [global, setGlobal] = useState<any>({});
+  const [global, setGlobal] = useState<GlobalData>({});
+
+  const { fetchWithLoader } = usePageLoader();
 
   // Dropdowny (mobile)
   const [mobileOferta, setMobileOferta] = useState(false);
@@ -62,8 +66,8 @@ export function Header() {
   const kredyty = useDropdown();
   const kalkulatory = useDropdown();
 
-  useEffect(() => {
-    const fetchGlobal = async () => {
+  const loadGlobalData = useCallback(() => {
+    fetchWithLoader(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
@@ -73,12 +77,15 @@ export function Header() {
       } catch (e) {
         console.error("Header global settings error:", e);
       }
-    };
-    fetchGlobal();
-  }, []);
+    });
+  }, [fetchWithLoader]);
 
-  const logoUrl = global.header_logo || "/logo-opolskie-ubezpiecznia.png";
-  const phone = global.global_phone || "739 079 729";
+  useEffect(() => {
+    loadGlobalData();
+  }, [loadGlobalData]);
+
+  const logoUrl = global.header_logo;
+  const phone = global.global_phone || "";
   const phoneLink = `tel:${phone.replace(/\s/g, "")}`;
 
   const closeMobileMenu = () => {
@@ -130,7 +137,9 @@ export function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/#top" onClick={closeMobileMenu} className="flex items-center gap-3">
-              <img src={logoUrl} alt="Opolskie Ubezpieczenia" className="h-10 sm:h-12 md:h-14 w-auto" />
+              {logoUrl && (
+                <img src={logoUrl} alt="Opolskie Ubezpieczenia" className="h-10 sm:h-12 md:h-14 w-auto" />
+              )}
             </Link>
           </div>
 
@@ -196,23 +205,27 @@ export function Header() {
           </nav>
 
           {/* Desktop CTA */}
-          <a
-            href={phoneLink}
-            className="hidden lg:inline-flex items-center gap-3 bg-[#2D7A5F] hover:bg-[#1F5A43] text-white px-6 md:px-8 py-3 md:py-4 rounded-xl transition-all shadow-lg shadow-[#2D7A5F]/20 lg:ml-4"
-          >
-            <Phone className="w-5 h-5" />
-            <span className="text-sm md:text-lg">{phone}</span>
-          </a>
+          {phone && (
+            <a
+              href={phoneLink}
+              className="hidden lg:inline-flex items-center gap-3 bg-[#2D7A5F] hover:bg-[#1F5A43] text-white px-6 md:px-8 py-3 md:py-4 rounded-xl transition-all shadow-lg shadow-[#2D7A5F]/20 lg:ml-4"
+            >
+              <Phone className="w-5 h-5" />
+              <span className="text-sm md:text-lg">{phone}</span>
+            </a>
+          )}
 
           {/* Mobile controls */}
           <div className="flex items-center gap-3 lg:hidden">
-            <a
-              href={phoneLink}
-              className="inline-flex items-center justify-center rounded-full border border-[#2D7A5F]/30 bg-white/70 px-3 py-2 text-[#2D7A5F] text-sm shadow-sm"
-              aria-label="Zadzwoń do nas"
-            >
-              <Phone className="w-4 h-4" />
-            </a>
+            {phone && (
+              <a
+                href={phoneLink}
+                className="inline-flex items-center justify-center rounded-full border border-[#2D7A5F]/30 bg-white/70 px-3 py-2 text-[#2D7A5F] text-sm shadow-sm"
+                aria-label="Zadzwoń do nas"
+              >
+                <Phone className="w-4 h-4" />
+              </a>
+            )}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((p) => !p)}

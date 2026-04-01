@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Phone,
@@ -16,10 +16,12 @@ import {
   Shield,
 } from "lucide-react";
 
+import { PageLoader, usePageLoader } from "../GlobalContext";
+
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 // TUTAJ WPISAŁEM TWOJE ID STRONY Z WORDPRESSA:
-const BLOG_PAGE_ID = 2700; 
+const BLOG_PAGE_ID = 2700;
 
 type WpPost = {
   id: number;
@@ -68,8 +70,8 @@ const PAGE_SIZE = 9;
 
 const fixImgUrl = (url?: string | null) => {
   if (!url) return null;
-  if (url.includes('/wp-content/') && !url.includes('/wp/wp-content/')) {
-    return url.replace('/wp-content/', '/wp/wp-content/');
+  if (url.includes("/wp-content/") && !url.includes("/wp/wp-content/")) {
+    return url.replace("/wp-content/", "/wp/wp-content/");
   }
   return url;
 };
@@ -108,7 +110,7 @@ const formatDatePL = (iso: string) => {
 
 const clampStyle = (lines: number): React.CSSProperties => ({
   display: "-webkit-box",
-  WebkitLineClamp: lines as any,
+  WebkitLineClamp: lines.toString(),
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 });
@@ -146,8 +148,12 @@ export default function BlogPage() {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState<Topic>("Wszystkie");
 
-  // NOWE: Stan dla tekstów edytowalnych (ACF)
+  // NOWE: Referencja do kontenera z listą wpisów (żeby scrollować w odpowiednie miejsce)
+  const listSectionRef = useRef<HTMLElement>(null);
+
+  // NOWE: Stan dla tekstów edytowalnych (ACF) i loadera
   const [texts, setTexts] = useState<BlogPageACF>({});
+  const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
 
   const inferTopic = (p: Pick<PostCard, "title" | "excerpt" | "text">): Exclude<Topic, "Wszystkie"> => {
     const t = `${p.title} ${p.excerpt} ${p.text}`.toLowerCase();
@@ -191,7 +197,7 @@ export default function BlogPage() {
     }
 
     return (
-      <div className="w-full h-full bg-gradient-to-br from-[#2D7A5F]/28 via-[#2D7A5F]/12 to-white flex items-center justify-center">
+      <div className="w-full h-full bg-linear-to-br from-[#2D7A5F]/28 via-[#2D7A5F]/12 to-white flex items-center justify-center">
         <div
           className={
             featuredSize
@@ -209,13 +215,13 @@ export default function BlogPage() {
     const title = decodeHtml(p.title?.rendered ?? "");
     const excerpt = decodeHtml(stripHtml(p.excerpt?.rendered ?? ""));
     const text = decodeHtml(stripHtml(p.content?.rendered ?? ""));
-    
+
     const rawFeaturedImg = p._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
     const featuredImg = fixImgUrl(rawFeaturedImg);
-    
+
     const rawInContent = parseFirstImageFromHtml(p.content?.rendered);
     const inContent = fixImgUrl(rawInContent);
-    
+
     const image = featuredImg || inContent || null;
 
     return {
@@ -230,23 +236,21 @@ export default function BlogPage() {
     };
   };
 
-  // 0) NOWE: Pobieranie tekstów z ACF (dla strony kontenera - ID 2700)
-  useEffect(() => {
-    const fetchTexts = async () => {
-      try {
-        const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_PAGE_ID}?_fields=acf`;
-        const res = await fetch(url);
-        if (!res.ok) return;
+  // 0) NOWE: Pobieranie tekstów z ACF przez Global Loadera
+  const loadTextsData = useCallback(() => {
+    fetchTexts(async () => {
+      const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_PAGE_ID}?_fields=acf`;
+      const res = await fetch(url);
+      if (res.ok) {
         const json = await res.json();
-        if (json.acf) {
-          setTexts(json.acf);
-        }
-      } catch (e) {
-        console.error("Błąd pobierania tekstów ACF", e);
+        if (json.acf) setTexts(json.acf);
       }
-    };
-    fetchTexts();
-  }, []);
+    });
+  }, [fetchTexts]);
+
+  useEffect(() => {
+    loadTextsData();
+  }, [loadTextsData]);
 
   // 1) Pobieranie FEATURED
   useEffect(() => {
@@ -281,7 +285,9 @@ export default function BlogPage() {
       }
     };
     run();
-    return () => { aborted = true; };
+    return () => {
+      aborted = true;
+    };
   }, []);
 
   // 2) Pobieranie LISTY (offset 1)
@@ -298,16 +304,29 @@ export default function BlogPage() {
         const mapped = data.map(mapWp);
         if (aborted) return;
         setPagePosts(mapped);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (aborted) return;
         setPagePosts([]);
-        setErrorMsg(err.message || "Błąd pobierania wpisów.");
+        if (err instanceof Error) {
+          setErrorMsg(err.message);
+        } else {
+          setErrorMsg("Błąd pobierania wpisów.");
+        }
       } finally {
         if (!aborted) setLoadingPage(false);
       }
     };
     run();
-    return () => { aborted = true; };
+    return () => {
+      aborted = true;
+    };
+  }, [page]);
+
+  // NOWE: Scroll do góry listy przy zmianie strony (page)
+  useEffect(() => {
+    if (page > 1 && listSectionRef.current) {
+      listSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }, [page]);
 
   useEffect(() => {
@@ -320,7 +339,7 @@ export default function BlogPage() {
 
     let allPosts = [...pagePosts];
     if (featured) {
-      if (!allPosts.find(p => p.id === featured.id)) {
+      if (!allPosts.find((p) => p.id === featured.id)) {
         allPosts = [featured, ...allPosts];
       }
     }
@@ -337,14 +356,16 @@ export default function BlogPage() {
   const isFiltering = topic !== "Wszystkie" || query.trim() !== "";
   const showFeaturedBlock = !!featured && !isFiltering;
 
-  const postsToRender = showFeaturedBlock 
-    ? filteredGrid.filter(p => p.id !== featured?.id) 
+  const postsToRender = showFeaturedBlock
+    ? filteredGrid.filter((p) => p.id !== featured?.id)
     : filteredGrid;
+
+  // Renderowanie loadera Globalnego tylko na czas pobierania tekstów
+  if (loadingTexts) return <PageLoader />;
 
   return (
     <main className="bg-[#F5F1E8]">
       {/* HERO */}
-     {/* HERO */}
       <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
         <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
         <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
@@ -352,47 +373,38 @@ export default function BlogPage() {
         <div className="pointer-events-none absolute bottom-20 left-16 sm:left-36 w-16 h-16 sm:w-24 sm:h-24 border-4 border-white/10 rotate-12" />
 
         <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
-          {/* ZMIANA: items-start zamiast items-stretch, aby układ był jak w O Nas */}
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-start">
             <div className="lg:col-span-8 max-w-4xl">
               <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 sm:mb-8 border border-white/20">
                 <Newspaper className="w-9 h-9 text-white" strokeWidth={1.5} />
               </div>
 
-              {/* EDYTOWALNE: Tytuł - klasy wielkości dopasowane do O Nas */}
               <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-6 sm:mb-8">
-                {texts.blog_hero_title || "Porady ubezpieczeniowe"}
+                {texts.blog_hero_title}
               </h1>
 
-              {/* EDYTOWALNE: Opis */}
               <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8 sm:mb-10 max-w-3xl whitespace-pre-wrap">
-                {texts.blog_hero_desc || "Krótkie wyjaśnienia i praktyczne wskazówki, które pomagają lepiej zrozumieć polisy i świadomie wybierać ochronę."}
+                {texts.blog_hero_desc}
               </p>
-
-              
             </div>
 
-            {/* ZMIANA: Usunięto lg:flex lg:items-center - kafelek teraz jest u góry */}
             <div className="lg:col-span-4">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl w-full">
-                {/* EDYTOWALNE: CTA Tytuł */}
                 <h3 className="text-white text-xl sm:text-2xl mb-3">
-                  {texts.blog_cta_title || "Wyceń polisę online"}
+                  {texts.blog_cta_title}
                 </h3>
-                
-                {/* EDYTOWALNE: CTA Opis */}
+
                 <p className="text-white/80 leading-relaxed mb-7 sm:mb-8">
-                  {texts.blog_cta_desc || "20+ towarzystw w jednym miejscu, szybka wycena, lokalna obsługa i pomoc w formalnościach."}
+                  {texts.blog_cta_desc}
                 </p>
 
                 <div className="space-y-3 sm:space-y-4">
                   <a
-                    href={`tel:${(texts.blog_phone || "739079729").replace(/\s/g, "")}`}
+                    href={`tel:${(texts.blog_phone || "").replace(/\s/g, "")}`}
                     className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] rounded-xl transition-all shadow-lg group"
                   >
                     <Phone className="w-5 h-5" />
-                    {/* EDYTOWALNE: Telefon */}
-                    <span className="font-medium">{texts.blog_phone || "739 079 729"}</span>
+                    <span className="font-medium">{texts.blog_phone}</span>
                     <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
                   </a>
 
@@ -403,8 +415,7 @@ export default function BlogPage() {
                     className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-transparent hover:bg-white/10 text-white border border-white/30 rounded-xl transition-all"
                   >
                     <Mail className="w-5 h-5" />
-                    {/* EDYTOWALNE: Email btn */}
-                    <span>{texts.blog_email_btn || "Skontaktuj się z nami"}</span>
+                    <span>{texts.blog_email_btn}</span>
                   </a>
                 </div>
               </div>
@@ -414,7 +425,7 @@ export default function BlogPage() {
       </section>
 
       {/* LISTA */}
-      <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
+      <section ref={listSectionRef} className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
         <div className="pointer-events-none absolute top-10 left-1/4 w-24 h-24 bg-[#2D7A5F]/5 rounded-full" />
         <div className="pointer-events-none absolute top-32 right-1/3 w-16 h-16 bg-[#2D7A5F]/5 rotate-45" />
         <div className="pointer-events-none absolute bottom-20 right-1/4 w-32 h-32 bg-[#2D7A5F]/5 rounded-full" />
@@ -430,16 +441,18 @@ export default function BlogPage() {
                   </span>
                 </div>
 
-                {/* EDYTOWALNE: Lista Tytuł */}
                 <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-3">
-                  {texts.blog_list_title || "Najnowsze artykuły"}
+                  {texts.blog_list_title}
                 </h2>
-                {/* EDYTOWALNE: Lista Opis */}
                 <p className="text-base sm:text-lg text-[#6B6B6B]">
-                  {texts.blog_list_desc || "Szukaj po temacie lub użyj filtrowania — znajdziesz dokładnie to, czego potrzebujesz."}
+                  {texts.blog_list_desc}
                 </p>
 
-                {errorMsg && <p className="mt-3 text-sm text-red-500 bg-red-50 p-2 rounded-lg border border-red-100">{errorMsg}</p>}
+                {errorMsg && (
+                  <p className="mt-3 text-sm text-red-500 bg-red-50 p-2 rounded-lg border border-red-100">
+                    {errorMsg}
+                  </p>
+                )}
               </div>
 
               <div className="w-full md:w-[420px]">
@@ -448,8 +461,7 @@ export default function BlogPage() {
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    // EDYTOWALNE: Placeholder
-                    placeholder={texts.blog_search_placeholder || "Szukaj w poradach…"}
+                    placeholder={texts.blog_search_placeholder}
                     className="w-full bg-transparent outline-none text-[#1A1A1A] placeholder:text-[#6B6B6B]"
                     aria-label="Szukaj wpisów na blogu"
                   />
@@ -506,57 +518,71 @@ export default function BlogPage() {
           ) : (
             <>
               {/* FEATURED: Pokazujemy TYLKO gdy nie ma filtrowania */}
-              {showFeaturedBlock && featured && (() => {
-                const ft = inferTopic(featured);
-                const Icon = topicIcon(ft);
+              {showFeaturedBlock &&
+                featured &&
+                (() => {
+                  const ft = inferTopic(featured);
+                  const Icon = topicIcon(ft);
 
-                return (
-                  <Link
-                    to={`/blog/${featured.slug}`}
-                    className="group block bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-[#2D7A5F]/10 hover:shadow-2xl transition-all hover:-translate-y-1 relative overflow-hidden mb-8"
-                  >
-                    <div className="pointer-events-none absolute top-0 right-0 w-28 h-28 bg-[#2D7A5F]/5 rounded-bl-full transition-all group-hover:bg-[#2D7A5F]/10" />
+                  return (
+                    <Link
+                      to={`/blog/${featured.slug}`}
+                      className="group block bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-[#2D7A5F]/10 hover:shadow-2xl transition-all hover:-translate-y-1 relative overflow-hidden mb-8"
+                    >
+                      <div className="pointer-events-none absolute top-0 right-0 w-28 h-28 bg-[#2D7A5F]/5 rounded-bl-full transition-all group-hover:bg-[#2D7A5F]/10" />
 
-                    <div className="relative flex flex-col lg:flex-row gap-6">
-                      <div className="relative w-full lg:w-[46%] overflow-hidden rounded-2xl border border-[#2D7A5F]/10 bg-[#2D7A5F]/5">
-                        <div className="aspect-[16/9] w-full">
-                          <Cover image={featured.image} title={featured.title} icon={Icon} featuredSize />
+                      <div className="relative flex flex-col lg:flex-row gap-6">
+                        <div className="relative w-full lg:w-[46%] overflow-hidden rounded-2xl border border-[#2D7A5F]/10 bg-[#2D7A5F]/5">
+                          <div className="aspect-[16/9] w-full">
+                            <Cover
+                              image={featured.image}
+                              title={featured.title}
+                              icon={Icon}
+                              featuredSize
+                            />
+                          </div>
+
+                          <div className="absolute left-4 top-4 inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-[11px] text-[#2D7A5F] uppercase tracking-wide border border-[#2D7A5F]/10">
+                            {ft}
+                          </div>
                         </div>
 
-                        <div className="absolute left-4 top-4 inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-[11px] text-[#2D7A5F] uppercase tracking-wide border border-[#2D7A5F]/10">
-                          {ft}
+                        <div className="relative flex-1">
+                          <div className="text-xs text-[#6B6B6B] mb-3">
+                            {formatDatePL(featured.dateISO)}
+                          </div>
+
+                          <h3
+                            className="text-2xl sm:text-3xl text-[#1A1A1A] leading-tight mb-3"
+                            style={clampStyle(2)}
+                          >
+                            {featured.title}
+                          </h3>
+
+                          <p
+                            className="text-[#6B6B6B] leading-relaxed mb-5"
+                            style={clampStyle(3)}
+                          >
+                            {featured.excerpt}
+                          </p>
+
+                          <div className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#2D7A5F] text-white shadow-sm">
+                            <span>Czytaj wpis</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </div>
                         </div>
                       </div>
-
-                      <div className="relative flex-1">
-                        <div className="text-xs text-[#6B6B6B] mb-3">{formatDatePL(featured.dateISO)}</div>
-
-                        <h3
-                          className="text-2xl sm:text-3xl text-[#1A1A1A] leading-tight mb-3"
-                          style={clampStyle(2)}
-                        >
-                          {featured.title}
-                        </h3>
-
-                        <p className="text-[#6B6B6B] leading-relaxed mb-5" style={clampStyle(3)}>
-                          {featured.excerpt}
-                        </p>
-
-                        <div className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#2D7A5F] text-white shadow-sm">
-                          <span>Czytaj wpis</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })()}
+                    </Link>
+                  );
+                })()}
 
               {/* GRID */}
               {postsToRender.length === 0 ? (
                 <div className="bg-white rounded-3xl p-8 shadow-lg border border-[#2D7A5F]/10">
                   <div className="text-lg text-[#1A1A1A] mb-2">Brak wyników</div>
-                  <div className="text-[#6B6B6B]">Zmień frazę lub wybierz inny temat.</div>
+                  <div className="text-[#6B6B6B]">
+                    Zmień frazę lub wybierz inny temat.
+                  </div>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">

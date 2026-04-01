@@ -31,8 +31,6 @@ const LENDI_WIDGETS = [
     actionLabel: "Otwórz kalkulator",
     acfTitleField: "kalkkred_w1_title",
     acfDescField: "kalkkred_w1_desc",
-    defaultTitle: "Kalkulator rat",
-    defaultDesc: "Porównaj raty kredytowe z różnych banków i znajdź najkorzystniejszą ofertę.",
     bullets: ["Porównanie ofert z kilkunastu banków", "Realne stawki i warunki", "Możliwość umówienia spotkania"],
     height: 2350,
     html: `<div class="lendi-widget" data-query="&primaryColor=%230A68EB&secondaryColor=%23172C57&dark=false&agentId=24337&utm_owner=24337&utm_fp_source_id=1491&utm_fp_partner_id=1808" data-widget-name="LightComparerWidget" data-height="2350"></div>`,
@@ -44,8 +42,6 @@ const LENDI_WIDGETS = [
     actionLabel: "Wypełnij formularz",
     acfTitleField: "kalkkred_w2_title",
     acfDescField: "kalkkred_w2_desc",
-    defaultTitle: "Kredyt hipoteczny — formularz",
-    defaultDesc: "Sprawdź, na jakie warunki kredytu hipotecznego możesz liczyć.",
     bullets: ["Analiza zdolności kredytowej", "Oferty dopasowane do sytuacji", "Bezpłatna konsultacja"],
     height: 700,
     html: `<div class="lendi-widget" data-query="&primaryColor=%230A68EB&secondaryColor%5Balpha%5D=1&secondaryColor%5Bhex%5D=%23FF0000&secondaryColor%5Bhexa%5D=%23FF0000FF&secondaryColor%5Bhsla%5D%5Bh%5D=0&secondaryColor%5Bhsla%5D%5Bs%5D=1&secondaryColor%5Bhsla%5D%5Bl%5D=0.5&secondaryColor%5Bhsla%5D%5Ba%5D=1&secondaryColor%5Bhsva%5D%5Bh%5D=0&secondaryColor%5Bhsva%5D%5Bs%5D=1&secondaryColor%5Bhsva%5D%5Bv%5D=1&secondaryColor%5Bhsva%5D%5Ba%5D=1&secondaryColor%5Bhue%5D=0&secondaryColor%5Brgba%5D%5Br%5D=255&secondaryColor%5Brgba%5D%5Bg%5D=0&secondaryColor%5Brgba%5D%5Bb%5D=0&secondaryColor%5Brgba%5D%5Ba%5D=1&dark=false&agentId=24337&description=W%20razie%20pyta%C5%84%20lub%20w%C4%85tpliwo%C5%9Bci%20zach%C4%99cam%20do%20skorzystania%20z%20bezp%C5%82atnej%20konsultacji%20w%20moim%20%E2%98%95%20biurze%20lub%20%F0%9F%91%A8%E2%80%8D%F0%9F%92%BB%20online.&mode=0&utm_owner=24337&utm_fp_source_id=1491&utm_fp_partner_id=1808" data-widget-name="MortgageFormWidget" data-height="700"></div>`,
@@ -57,8 +53,6 @@ const LENDI_WIDGETS = [
     actionLabel: "Porównaj oferty",
     acfTitleField: "kalkkred_w3_title",
     acfDescField: "kalkkred_w3_desc",
-    defaultTitle: "Porównywarka kredytów hipotecznych",
-    defaultDesc: "Porównaj oferty kredytów hipotecznych z wielu banków w jednym miejscu.",
     bullets: ["Szybkie porównanie warunków", "Najlepsze oferty z rynku", "Wyniki w kilka minut"],
     height: 560,
     html: `<div class="lendi-widget" data-query="&primaryColor=%230A68EB&secondaryColor=%23172C57&dark=false&agentId=24337&description=W%20razie%20pyta%C5%84%20lub%20w%C4%85tpliwo%C5%9Bci%20zach%C4%99cam%20do%20skorzystania%20z%20bezp%C5%82atnej%20konsultacji%20w%20moim%20%E2%98%95%20biurze%20lub%20%F0%9F%91%A8%E2%80%8D%F0%9F%92%BB%20online.&mode=0&utm_owner=24337&utm_fp_source_id=1491&utm_fp_partner_id=1808" data-widget-name="MortgageComparerFormWidget" data-height="560"></div>`,
@@ -70,8 +64,6 @@ const LENDI_WIDGETS = [
     actionLabel: "Oblicz ratę",
     acfTitleField: "kalkkred_w4_title",
     acfDescField: "kalkkred_w4_desc",
-    defaultTitle: "Wybór raty",
-    defaultDesc: "Oblicz wysokość raty i dopasuj okres kredytowania do swoich możliwości.",
     bullets: ["Szybka kalkulacja raty", "Dopasowanie okresu spłaty", "Przejrzysty wynik"],
     height: 290,
     html: `<div class="lendi-widget" data-query="&primaryColor=%230A68EB&dark=false&agentId=24337&utm_owner=24337&utm_fp_source_id=1491&utm_fp_partner_id=1808" data-widget-name="BaseInstallmentPicker" data-height="290"></div>`,
@@ -83,8 +75,6 @@ const LENDI_WIDGETS = [
     actionLabel: "Umów spotkanie",
     acfTitleField: "kalkkred_w5_title",
     acfDescField: "kalkkred_w5_desc",
-    defaultTitle: "Umów konsultację",
-    defaultDesc: "Umów bezpłatną konsultację z ekspertem — online lub w biurze w Nysie.",
     bullets: ["Spotkanie online lub stacjonarnie", "Bezpłatna analiza sytuacji", "Bez zobowiązań"],
     height: 700,
     html: `<div class="lendi-widget" data-query="&primaryColor=%230A68EB&secondaryColor%5Balpha%5D=1&secondaryColor%5Bhex%5D=%23FF0000&secondaryColor%5Bhexa%5D=%23FF0000FF&secondaryColor%5Bhsla%5D%5Bh%5D=0&secondaryColor%5Bhsla%5D%5Bs%5D=1&secondaryColor%5Bhsla%5D%5Bl%5D=0.5&secondaryColor%5Bhsla%5D%5Ba%5D=1&secondaryColor%5Bhsva%5D%5Bh%5D=0&secondaryColor%5Bhsva%5D%5Bs%5D=1&secondaryColor%5Bhsva%5D%5Bv%5D=1&secondaryColor%5Bhsva%5D%5Ba%5D=1&secondaryColor%5Bhue%5D=0&secondaryColor%5Brgba%5D%5Br%5D=255&secondaryColor%5Brgba%5D%5Bg%5D=0&secondaryColor%5Brgba%5D%5Bb%5D=0&secondaryColor%5Brgba%5D%5Ba%5D=1&dark=false&agentId=24337&description=W%20razie%20pyta%C5%84%20lub%20w%C4%85tpliwo%C5%9Bci%20zach%C4%99cam%20do%20skorzystania%20z%20bezp%C5%82atnej%20konsultacji%20w%20moim%20%E2%98%95%20biurze%20lub%20%F0%9F%91%A8%E2%80%8D%F0%9F%92%BB%20online.&mode=0&utm_owner=24337&utm_fp_source_id=1491&utm_fp_partner_id=1808" data-widget-name="MortgageFormWidget" data-height="700"></div>`,
@@ -96,8 +86,6 @@ const LENDI_WIDGETS = [
     actionLabel: "Sprawdź zdolność",
     acfTitleField: "kalkkred_w6_title",
     acfDescField: "kalkkred_w6_desc",
-    defaultTitle: "Zdolność kredytowa i oferty",
-    defaultDesc: "Sprawdź zdolność kredytową i zobacz oferty dopasowane do Twojej sytuacji.",
     bullets: ["Analiza zdolności w kilka minut", "Oferty z wielu banków", "Konkretne kwoty i warunki"],
     height: 1900,
     html: `<div class="lendi-widget" data-query="&primaryColor=%230A68EB&secondaryColor=%23172C57&dark=false&agentId=24337&description=W%20razie%20pyta%C5%84%20lub%20w%C4%85tpliwo%C5%9Bci%20zach%C4%99cam%20do%20skorzystania%20z%20bezp%C5%82atnej%20konsultacji%20w%20moim%20%E2%98%95%20biurze%20lub%20%F0%9F%91%A8%E2%80%8D%F0%9F%92%BB%20online.&mode=0&utm_owner=24337&utm_fp_source_id=1491&utm_fp_partner_id=1808" data-widget-name="CreditWorthinessOffersWidget" data-height="1900"></div>`,
@@ -131,7 +119,7 @@ function LendiWidgetEmbed({ widgetHtml, height }: { widgetHtml: string; height: 
 
 // --- Modal ---
 function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[number]; acf: AcfData | null; onClose: () => void }) {
-  const title = acf?.[widget.acfTitleField] || widget.defaultTitle;
+  const title = acf?.[widget.acfTitleField];
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -160,7 +148,7 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
 
 const clampStyle = (lines: number): React.CSSProperties => ({
   display: "-webkit-box",
-  WebkitLineClamp: lines.toString(), // <-- ZMIANA TUTAJ: Konwersja na string bez any i bez "unset"
+  WebkitLineClamp: lines.toString(),
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 });
@@ -225,10 +213,10 @@ export default function CreditCalculatorPage() {
                 <Calculator className="w-9 h-9 text-white" strokeWidth={1.5} />
               </div>
               <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
-                {acf?.kalkkred_hero_title || "Kalkulatory kredytowe online"}
+                {acf?.kalkkred_hero_title}
               </h1>
               <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-3xl">
-                {acf?.kalkkred_hero_desc || "Skorzystaj z kalkulatorów kredytowych — porównaj raty, sprawdź zdolność i umów bezpłatną konsultację."}
+                {acf?.kalkkred_hero_desc}
               </p>
             </div>
           </div>
@@ -246,22 +234,22 @@ export default function CreditCalculatorPage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D7A5F]/10 rounded-full mb-6">
               <Calculator className="w-4 h-4 text-[#2D7A5F]" />
               <span className="text-sm text-[#2D7A5F] uppercase tracking-wide">
-                {acf?.kalkkred_badge || "Narzędzia kredytowe Lendi"}
+                {acf?.kalkkred_badge}
               </span>
             </div>
             <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-4">
-              {acf?.kalkkred_section_title || "Wybierz narzędzie"}
+              {acf?.kalkkred_section_title}
             </h2>
             <p className="text-base sm:text-lg text-[#6B6B6B]">
-              {acf?.kalkkred_section_desc || "Kliknij w wybraną kartę — narzędzie otworzy się na tej stronie"}
+              {acf?.kalkkred_section_desc}
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
             {LENDI_WIDGETS.map((widget) => {
               const Icon = widget.icon;
-              const title = acf?.[widget.acfTitleField] || widget.defaultTitle;
-              const desc = acf?.[widget.acfDescField] || widget.defaultDesc;
+              const title = acf?.[widget.acfTitleField];
+              const desc = acf?.[widget.acfDescField];
 
               return (
                 <button
@@ -315,8 +303,8 @@ export default function CreditCalculatorPage() {
                 <CheckCircle className="w-6 h-6 text-[#2D7A5F]" />
               </div>
               <div>
-                <h3 className="text-xl text-[#1A1A1A] mb-3">{acf?.kalkkred_tip_title || "Wskazówka"}</h3>
-                <p className="text-[#6B6B6B] leading-relaxed">{acf?.kalkkred_tip_desc || "Kalkulatory dają orientacyjne wyniki. Ostateczne warunki kredytu zależą od indywidualnej oceny banku. Jeśli masz pytania — zadzwoń, pomożemy wybrać najlepszą ofertę."}</p>
+                <h3 className="text-xl text-[#1A1A1A] mb-3">{acf?.kalkkred_tip_title}</h3>
+                <p className="text-[#6B6B6B] leading-relaxed">{acf?.kalkkred_tip_desc}</p>
               </div>
             </div>
           </div>
