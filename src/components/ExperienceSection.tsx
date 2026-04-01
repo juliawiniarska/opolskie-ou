@@ -68,7 +68,7 @@ export function ExperienceSection() {
           <div className="relative max-w-xl mx-auto lg:mx-0">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
               <ImageWithFallback
-                src={texts.exp_image || "/img-o-nas.jpg"}
+                src={texts.exp_image || "/img o nas.jpg"}
                 alt={texts.exp_image_alt || "Wojciech Kurzeja - Ekspert ubezpieczeniowy"}
                 className="w-full aspect-[4/5] object-cover"
               />
