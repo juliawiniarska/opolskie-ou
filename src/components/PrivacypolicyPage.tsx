@@ -4,6 +4,8 @@ import {
   FileText,
   Fingerprint
 } from "lucide-react";
+// Poprawiony import typu dla ikony
+import type { LucideIcon } from "lucide-react"; 
 
 import { PageLoader, usePageLoader } from "../GlobalContext";
 
@@ -32,7 +34,7 @@ function PolicyPoint({ number, children }: { number?: string | number, children:
 }
 
 // Komponent dla sekcji nagłówkowych
-function PolicySection({ title, icon: Icon, children }: { title: string, icon: any, children: React.ReactNode }) {
+function PolicySection({ title, icon: Icon, children }: { title: string, icon: LucideIcon, children: React.ReactNode }) {
   return (
     <div className="mb-12 last:mb-0">
       <div className="flex items-center gap-3 mb-6">
@@ -93,17 +95,17 @@ export default function PrivacyPolicyPage() {
     window.scrollTo(0, 0);
   }, [loadPageData, loadGlobalData]);
 
-  // --- DANE DYNAMICZNE Z GLOBALNYCH ---
+  // --- DANE DYNAMICZNE ---
   const COMPANY_NAME = global.global_company_full || "";
-  const ADDRESS = global.global_address ? global.global_address.replace(/\n/g, ", ") : "";
+  // USUNIĘTO NIEUŻYWANĄ ZMIENNĄ ADDRESS, ABY ZLIKWIDOWAĆ BŁĄD
 
   // --- HELPERY DO PARSOWANIA ACF ---
-  const getList = (text: string) => {
+  const getList = (text?: string) => {
     if (!text) return [];
     return text.split('\n').filter(line => line.trim() !== '');
   };
 
-  const getKeyValueList = (text: string) => {
+  const getKeyValueList = (text?: string) => {
     const lines = getList(text);
     if (!lines) return [];
     return lines.map(line => {

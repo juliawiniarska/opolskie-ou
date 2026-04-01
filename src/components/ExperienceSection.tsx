@@ -1,5 +1,5 @@
-import { Award, FileCheck, Users, Headphones, LucideIcon } from "lucide-react";
-import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { Award, FileCheck, Users, Headphones } from "lucide-react";
+import type { LucideIcon } from "lucide-react";import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useEffect, useState, useCallback } from "react";
 import { PageLoader, usePageLoader } from "../GlobalContext";
 

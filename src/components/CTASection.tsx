@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { PageLoader, usePageLoader } from "../GlobalContext";
-
+import { Link } from "react-router-dom";
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 const HOME_PAGE_ID = 2688;

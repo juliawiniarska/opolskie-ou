@@ -1,6 +1,6 @@
 import { MessageCircle, Phone, Mail, CheckCircle, Send } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { PageLoader, usePageLoader } from "../GlobalContext";
+import { PageLoader, usePageLoader } from "../../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
