@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-// Usunięto import Link, bo nie był używany
 import {
   Calculator,
   ArrowRight,
@@ -128,7 +127,7 @@ function LendiWidgetEmbed({ widgetHtml, height }: { widgetHtml: string; height: 
   );
 }
 
-// --- Modal ---
+// --- Modal (Podniesiony margines od góry) ---
 function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[number]; acf: AcfData | null; onClose: () => void }) {
   const title = acf?.[widget.acfTitleField];
 
@@ -145,7 +144,7 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
       
       <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] bg-white rounded-3xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-[#2D7A5F]/10 bg-[#F5F1E8] shrink-0">
-          <h3 className="text-lg sm:text-xl text-[#1A1A1A] font-medium">{title}</h3>
+          <h3 className="text-lg sm:text-xl text-[#1A1A1A]">{title}</h3>
           <button onClick={onClose} className="w-10 h-10 rounded-full bg-white border border-[#2D7A5F]/10 flex items-center justify-center hover:bg-[#2D7A5F]/5 transition-colors cursor-pointer">
             <X className="w-6 h-6 text-[#2D7A5F]" />
           </button>
@@ -200,7 +199,6 @@ export default function CreditCalculatorPage() {
 
   return (
     <main className="bg-[#F5F1E8]">
-      {/* HERO */}
       <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
         <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
         <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
@@ -211,7 +209,7 @@ export default function CreditCalculatorPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 border border-white/20">
               <Calculator className="w-9 h-9 text-white" strokeWidth={1.5} />
             </div>
-            <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8 font-bold">
+            <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
               {acf?.kalkkred_hero_title}
             </h1>
             <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-3xl">
@@ -221,17 +219,16 @@ export default function CreditCalculatorPage() {
         </div>
       </section>
 
-      {/* SEKCA KART */}
       <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
         <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
           <div className="mb-10 text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D7A5F]/10 rounded-full mb-6">
               <Calculator className="w-4 h-4 text-[#2D7A5F]" />
-              <span className="text-sm text-[#2D7A5F] uppercase tracking-wide font-medium">
+              <span className="text-sm text-[#2D7A5F] uppercase tracking-wide">
                 {acf?.kalkkred_badge}
               </span>
             </div>
-            <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-4 font-bold">
+            <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-4">
               {acf?.kalkkred_section_title}
             </h2>
             <p className="text-base sm:text-lg text-[#6B6B6B]">
@@ -250,14 +247,14 @@ export default function CreditCalculatorPage() {
                 >
                   <div className="pointer-events-none absolute top-0 right-0 w-20 h-20 bg-[#2D7A5F]/5 rounded-bl-full transition-all group-hover:bg-[#2D7A5F]/10" />
                   <div className="relative mb-4 h-6 flex items-center">
-                    <span className="inline-block text-[11px] text-[#2D7A5F] px-3 py-1 bg-[#2D7A5F]/10 rounded-full uppercase tracking-wide font-medium">{widget.category}</span>
+                    <span className="inline-block text-[11px] text-[#2D7A5F] px-3 py-1 bg-[#2D7A5F]/10 rounded-full uppercase tracking-wide">{widget.category}</span>
                   </div>
                   <div className="relative mb-4 h-14 flex items-center">
                     <div className="w-14 h-14 rounded-2xl bg-[#2D7A5F]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Icon className="w-7 h-7 text-[#2D7A5F]" />
                     </div>
                   </div>
-                  <h3 className="text-xl text-[#1A1A1A] mb-2 font-bold h-14 line-clamp-2">{acf?.[widget.acfTitleField]}</h3>
+                  <h3 className="text-xl text-[#1A1A1A] mb-2 h-14 line-clamp-2">{acf?.[widget.acfTitleField]}</h3>
                   <p className="text-sm text-[#6B6B6B] leading-relaxed mb-4 h-16 line-clamp-3">{acf?.[widget.acfDescField]}</p>
                   <div className="h-px bg-[#2D7A5F]/10 mb-4" />
                   <div className="mb-4 flex-1">
@@ -272,7 +269,7 @@ export default function CreditCalculatorPage() {
                       ))}
                     </ul>
                   </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-[#2D7A5F]/10 mt-auto text-[#2D7A5F] font-semibold">
+                  <div className="flex items-center justify-between pt-3 border-t border-[#2D7A5F]/10 mt-auto text-[#2D7A5F]">
                     <span>{widget.actionLabel}</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -283,22 +280,20 @@ export default function CreditCalculatorPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="pb-20 bg-[#F5F1E8]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
           <div className="bg-[#2D7A5F] rounded-[40px] p-8 sm:p-12 text-white text-center relative overflow-hidden">
             <div className="relative z-10">
-              <h3 className="text-2xl sm:text-3xl mb-4 font-bold">{acf?.kalkkred_cta_title}</h3>
+              <h3 className="text-2xl sm:text-3xl mb-4">{acf?.kalkkred_cta_title}</h3>
               <p className="text-white/85 mb-8 max-w-2xl mx-auto">{acf?.kalkkred_cta_desc}</p>
               <div className="flex flex-wrap justify-center gap-4">
-                {phone && <a href={`tel:${phone.replace(/\s/g, "")}`} className="bg-white text-[#2D7A5F] px-8 py-4 rounded-2xl font-bold hover:bg-[#F5F1E8] transition-all">{phone}</a>}
+                {phone && <a href={`tel:${phone.replace(/\s/g, "")}`} className="bg-white text-[#2D7A5F] px-8 py-4 rounded-2xl hover:bg-[#F5F1E8] transition-all">{phone}</a>}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* MODAL */}
       {openWidget && <WidgetModal widget={openWidget} acf={acf} onClose={() => setOpenWidgetId(null)} />}
     </main>
   );
