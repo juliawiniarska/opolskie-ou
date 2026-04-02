@@ -30,7 +30,6 @@ const kalkulatoryItems = [
   { label: "Kalkulator kredytowy", to: "/kalkulator-kredytowy" },
 ];
 
-// --- HOOK DO DROPDOWN ---
 function useDropdown() {
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<number | null>(null);
@@ -56,12 +55,10 @@ export function Header() {
 
   const { fetchWithLoader } = usePageLoader();
 
-  // Dropdowny (mobile)
   const [mobileOferta, setMobileOferta] = useState(false);
   const [mobileKredyty, setMobileKredyty] = useState(false);
   const [mobileKalkulatory, setMobileKalkulatory] = useState(false);
 
-  // Dropdowny (desktop)
   const oferta = useDropdown();
   const kredyty = useDropdown();
   const kalkulatory = useDropdown();
@@ -84,7 +81,6 @@ export function Header() {
     loadGlobalData();
   }, [loadGlobalData]);
 
-  // PRZYWRÓCONY FALLBACK LOGA ZE STAREGO KODU
   const logoUrl = global.header_logo || "/logo-opolskie-ubezpiecznia.png";
   const phone = global.global_phone || "";
   const phoneLink = `tel:${phone.replace(/\s/g, "")}`;
@@ -96,7 +92,6 @@ export function Header() {
     setMobileKalkulatory(false);
   };
 
-  // Komponent dropdownu desktop
   const DesktopDropdown = ({
     label,
     linkTo,
@@ -135,14 +130,12 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#F5F1E8]/95 backdrop-blur-md border-b border-[#2D7A5F]/15 shadow-sm">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-16 py-4">
         <div className="flex items-center justify-between gap-4">
-          {/* Logo - teraz z wymuszonym wyświetlaniem logoUrl */}
           <div className="flex items-center">
             <Link to="/#top" onClick={closeMobileMenu} className="flex items-center gap-3">
               <img src={logoUrl} alt="Opolskie Ubezpieczenia" className="h-10 sm:h-12 md:h-14 w-auto" />
             </Link>
           </div>
 
-          {/* ═══ Desktop navigation ═══ */}
           <nav className="hidden lg:flex items-center gap-8 xl:gap-8 text-[15px]">
             <DesktopDropdown label="Oferta" linkTo="/#oferta" hook={oferta}>
               {ofertaItems.map((item) => (
@@ -200,7 +193,6 @@ export function Header() {
             </Link>
           </nav>
 
-          {/* Desktop CTA */}
           {phone && (
             <a
               href={phoneLink}
@@ -211,7 +203,6 @@ export function Header() {
             </a>
           )}
 
-          {/* Mobile controls */}
           <div className="flex items-center gap-3 lg:hidden">
             {phone && (
               <a
@@ -233,11 +224,11 @@ export function Header() {
           </div>
         </div>
 
-        {/* ═══ Mobile menu ═══ */}
         {isMobileMenuOpen && (
           <div className="mt-4 lg:hidden rounded-3xl border border-[#2D7A5F]/12 bg-white shadow-2xl overflow-hidden">
             <nav className="flex flex-col text-[15px] divide-y divide-[#2D7A5F]/8">
-              {/* Oferta */}
+              
+              {/* Oferta - Mobile (Cały wiersz rozwija) */}
               <div className="flex flex-col">
                 <button
                   type="button"
@@ -263,16 +254,20 @@ export function Header() {
                 )}
               </div>
 
-              {/* Kredyty */}
+              {/* Kredyty - Mobile (Tylko tu jest podział na Link i Przycisk) */}
               <div className="flex flex-col">
-                <button
-                  type="button"
-                  onClick={() => setMobileKredyty((p) => !p)}
-                  className="flex items-center justify-between px-4 py-3 text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors"
-                >
-                  <span>Kredyty</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${mobileKredyty ? "rotate-180" : ""}`} />
-                </button>
+                <div className="flex items-center justify-between text-[#2D7A5F] hover:bg-[#2D7A5F]/4 transition-colors">
+                  <Link to="/kredyty" onClick={closeMobileMenu} className="flex-1 px-4 py-3">
+                    Kredyty
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setMobileKredyty((p) => !p)}
+                    className="px-4 py-3 border-l border-[#2D7A5F]/10"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${mobileKredyty ? "rotate-180" : ""}`} />
+                  </button>
+                </div>
                 {mobileKredyty && (
                   <div className="bg-[#F5F1E8]/70 pb-2">
                     {kredytyItems.map((item) => (
@@ -289,7 +284,7 @@ export function Header() {
                 )}
               </div>
 
-              {/* Kalkulatory */}
+              {/* Kalkulatory - Mobile (Cały wiersz rozwija) */}
               <div className="flex flex-col">
                 <button
                   type="button"
