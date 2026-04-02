@@ -301,15 +301,22 @@ export default function BlogPage() {
   const showFeaturedBlock = !!featured && !isFiltering;
   const postsToRender = showFeaturedBlock ? filteredGrid.filter(p => p.id !== featured?.id) : filteredGrid;
 
-  // --- LOGIKA SEO (HELMET) ---
+  // --- DYNAMICZNY TYTUŁ ---
+  const currentTitle = useMemo(() => {
+    const base = "Porady i Wiedza Ubezpieczeniowa";
+    const suffix = topic !== "Wszystkie" ? `: ${topic}` : "";
+    return `${base}${suffix} | Opolskie Ubezpieczenia`;
+  }, [topic]);
+
+  // --- HELMET COMPONENT (DODANO defer={false}) ---
   const helmetContent = (
-    <Helmet>
-      <title>{topic === "Wszystkie" ? "Porady i Wiedza Ubezpieczeniowa" : `Porady: ${topic}`} | Opolskie Ubezpieczenia</title>
-      <meta name="description" content="Eksperckie artykuły o ubezpieczeniach i kredytach. Dowiedz się, jak świadomie chronić majątek i zarządzać finansami. Sprawdź porady naszych doradców z Nysy." />
-    </Helmet>
+    <Helmet defer={false}> {/* Przypisujemy do Helmeta */}
+    <title>{currentTitle}</title>
+    <meta name="description" content="Eksperckie artykuły o ubezpieczeniach i kredytach. Dowiedz się, jak świadomie chronić majątek i zarządzać finansami. Porady z Nysy." />
+  </Helmet>
   );
 
-  // Zwracamy Helmet + Loader jeśli trwa ładowanie tekstów z ACF
+  // ZWRACANIE PODCZAS ŁADOWANIA
   if (loadingTexts) {
     return (
       <>
@@ -323,7 +330,7 @@ export default function BlogPage() {
     <>
       {helmetContent}
       <main className="bg-[#F5F1E8]">
-        {/* HERO */}
+        {/* HERO SECTION */}
         <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
           <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
           <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
@@ -357,7 +364,7 @@ export default function BlogPage() {
           </div>
         </section>
 
-        {/* LISTA */}
+        {/* LIST SECTION */}
         <section ref={listSectionRef} className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
           <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
             <div className="mb-10 sm:mb-14 lg:mb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -393,8 +400,8 @@ export default function BlogPage() {
 
             {loading ? (
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-3xl p-6 h-80 shadow-lg border border-[#2D7A5F]/10 animate-pulse" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white/50 h-80 rounded-3xl animate-pulse" />
                 ))}
               </div>
             ) : (
@@ -402,7 +409,7 @@ export default function BlogPage() {
                 {showFeaturedBlock && featured && (
                   <Link to={`/blog/${featured.slug}`} className="group block bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-[#2D7A5F]/10 hover:shadow-2xl transition-all mb-8 relative overflow-hidden">
                     <div className="flex flex-col lg:flex-row gap-6">
-                      <div className="relative w-full lg:w-[46%] overflow-hidden rounded-2xl aspect-[16/9]">
+                      <div className="relative w-full lg:w-[46%] overflow-hidden rounded-2xl aspect-[16/9] bg-[#2D7A5F]/5">
                         <Cover image={featured.image} title={featured.title} icon={topicIcon(inferTopic(featured))} featuredSize />
                         <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] text-[#2D7A5F] uppercase tracking-wide border">
                           {inferTopic(featured)}
@@ -441,13 +448,13 @@ export default function BlogPage() {
                   })}
                 </div>
                 
-                {postsToRender.length === 0 && <div className="text-center py-20 text-[#6B6B6B]">Brak wpisów spełniających kryteria.</div>}
+                {postsToRender.length === 0 && !loading && <div className="text-center py-20 text-[#6B6B6B]">Brak wpisów spełniających kryteria.</div>}
 
                 {!isFiltering && totalPages && totalPages > 1 && (
                   <div className="mt-12 flex items-center justify-center gap-4">
                     <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-3 rounded-xl bg-white border border-[#2D7A5F]/10 disabled:opacity-30 shadow-sm"><ChevronLeft className="w-5 h-5 text-[#2D7A5F]" /></button>
                     <span className="text-sm text-[#2D7A5F] font-medium bg-white px-4 py-2 rounded-xl border border-[#2D7A5F]/10">Strona {page} z {totalPages}</span>
-                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-3 rounded-xl bg-white border border-[#2D7A5F]/10 disabled:opacity-30 shadow-sm"><ChevronRight className="w-5 h-5 text-[#2D7A5F]" /></button>
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="p-3 rounded-xl bg-white border border-[#2D7A5F]/10 disabled:opacity-30 shadow-sm"><ChevronRight className="w-5 h-5 text-[#2D7A5F]" /></button>
                   </div>
                 )}
               </>
