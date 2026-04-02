@@ -140,7 +140,6 @@ export default function BlogPage() {
   const [loadingPage, setLoadingPage] = useState(true);
   const loading = loadingFeatured || loadingPage;
   
-  // POPRAWIONE: errorMsg i setErrorMsg są teraz używane
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const [page, setPage] = useState(1);
@@ -224,7 +223,7 @@ export default function BlogPage() {
     let aborted = false;
     const run = async () => {
       setLoadingFeatured(true);
-      setErrorMsg(null); // Reset błędu przy starcie
+      setErrorMsg(null);
       try {
         const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=1&page=1&_embed=true&t=${Date.now()}`;
         const res = await fetch(url);
@@ -285,7 +284,7 @@ export default function BlogPage() {
 
   useEffect(() => { 
     setPage(1); 
-    setErrorMsg(null); // Czyścimy błędy przy zmianie filtrów
+    setErrorMsg(null);
   }, [topic, query]);
 
   const filteredGrid = useMemo(() => {
@@ -304,6 +303,7 @@ export default function BlogPage() {
   const showFeaturedBlock = !!featured && !isFiltering;
   const postsToRender = showFeaturedBlock ? filteredGrid.filter(p => p.id !== featured?.id) : filteredGrid;
 
+  // --- LOGIKA SEO ---
   const helmetContent = (
     <Helmet>
       <title>{topic === "Wszystkie" ? "Porady i Wiedza Ubezpieczeniowa" : `Porady: ${topic}`} | Opolskie Ubezpieczenia</title>
@@ -311,12 +311,21 @@ export default function BlogPage() {
     </Helmet>
   );
 
-  if (loadingTexts) return <><>{helmetContent}</><PageLoader /></>;
+  // POPRAWIONY RETURN DLA ŁADOWANIA
+  if (loadingTexts) {
+    return (
+      <>
+        {helmetContent}
+        <PageLoader />
+      </>
+    );
+  }
 
   return (
     <>
       {helmetContent}
       <main className="bg-[#F5F1E8]">
+        {/* HERO SECTION */}
         <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
           <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
           <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
@@ -350,6 +359,7 @@ export default function BlogPage() {
           </div>
         </section>
 
+        {/* LIST SECTION */}
         <section ref={listSectionRef} className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
           <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
             <div className="mb-10 sm:mb-14 lg:mb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -361,7 +371,6 @@ export default function BlogPage() {
                 <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-3">{texts.blog_list_title}</h2>
                 <p className="text-base sm:text-lg text-[#6B6B6B]">{texts.blog_list_desc}</p>
 
-                {/* POPRAWIONE: Wyświetlanie błędu w UI */}
                 {errorMsg && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm">
                     {errorMsg}
