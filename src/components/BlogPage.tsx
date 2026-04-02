@@ -139,7 +139,10 @@ export default function BlogPage() {
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingPage, setLoadingPage] = useState(true);
   const loading = loadingFeatured || loadingPage;
+  
+  // POPRAWIONE: errorMsg i setErrorMsg są teraz używane
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -221,10 +224,11 @@ export default function BlogPage() {
     let aborted = false;
     const run = async () => {
       setLoadingFeatured(true);
+      setErrorMsg(null); // Reset błędu przy starcie
       try {
         const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=1&page=1&_embed=true&t=${Date.now()}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error();
+        if (!res.ok) throw new Error("Błąd serwera WordPress");
         const totalStr = res.headers.get("X-WP-Total");
         const total = totalStr ? Number(totalStr) : null;
         const data = (await res.json()) as WpPost[];
@@ -236,7 +240,10 @@ export default function BlogPage() {
           setTotalPages(pages || 1);
         }
       } catch {
-        if (!aborted) setFeatured(null);
+        if (!aborted) {
+          setFeatured(null);
+          setErrorMsg("Wystąpił problem z połączeniem z serwerem.");
+        }
       } finally {
         if (!aborted) setLoadingFeatured(false);
       }
@@ -253,11 +260,15 @@ export default function BlogPage() {
         const offset = 1 + (page - 1) * PAGE_SIZE;
         const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=${PAGE_SIZE}&offset=${offset}&_embed=true&t=${Date.now()}`;
         const res = await fetch(url);
+        if (!res.ok) throw new Error();
         const data = (await res.json()) as WpPost[];
         if (aborted) return;
         setPagePosts(data.map(mapWp));
       } catch {
-        if (!aborted) setPagePosts([]);
+        if (!aborted) {
+          setPagePosts([]);
+          setErrorMsg("Nie udało się załadować kolejnych wpisów.");
+        }
       } finally {
         if (!aborted) setLoadingPage(false);
       }
@@ -272,7 +283,10 @@ export default function BlogPage() {
     }
   }, [page]);
 
-  useEffect(() => { setPage(1); }, [topic, query]);
+  useEffect(() => { 
+    setPage(1); 
+    setErrorMsg(null); // Czyścimy błędy przy zmianie filtrów
+  }, [topic, query]);
 
   const filteredGrid = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -290,7 +304,6 @@ export default function BlogPage() {
   const showFeaturedBlock = !!featured && !isFiltering;
   const postsToRender = showFeaturedBlock ? filteredGrid.filter(p => p.id !== featured?.id) : filteredGrid;
 
-  // --- DYNAMICZNE SEO ---
   const helmetContent = (
     <Helmet>
       <title>{topic === "Wszystkie" ? "Porady i Wiedza Ubezpieczeniowa" : `Porady: ${topic}`} | Opolskie Ubezpieczenia</title>
@@ -347,6 +360,13 @@ export default function BlogPage() {
                 </div>
                 <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-3">{texts.blog_list_title}</h2>
                 <p className="text-base sm:text-lg text-[#6B6B6B]">{texts.blog_list_desc}</p>
+
+                {/* POPRAWIONE: Wyświetlanie błędu w UI */}
+                {errorMsg && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm">
+                    {errorMsg}
+                  </div>
+                )}
               </div>
 
               <div className="w-full md:w-[420px]">
@@ -405,7 +425,7 @@ export default function BlogPage() {
                   ))}
                 </div>
                 
-                {postsToRender.length === 0 && <div className="text-center py-20 text-[#6B6B6B]">Brak wpisów spełniających kryteria.</div>}
+                {postsToRender.length === 0 && !loading && <div className="text-center py-20 text-[#6B6B6B]">Brak wpisów spełniających kryteria.</div>}
 
                 {!isFiltering && totalPages && totalPages > 1 && (
                   <div className="mt-12 flex items-center justify-center gap-4">
