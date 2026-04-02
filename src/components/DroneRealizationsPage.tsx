@@ -9,17 +9,18 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { Helmet } from "react-helmet-async"; // DODANO IMPORT
+import { Helmet } from "react-helmet-async";
 
 import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
-const DRONE_PAGE_ID = 2708; 
+const DRONE_PAGE_ID = 2708;
 const GLOBAL_SETTINGS_ID = 2756;
 
 const CONTACT_URL = "https://www.opolskieubezpieczenia.pl/kontakt/";
-const INSTAGRAM_SCRIPT_URL = "https://cdn.trustindex.io/loader-feed.js?a055963611ea6261358618116af";
+const INSTAGRAM_SCRIPT_URL =
+  "https://cdn.trustindex.io/loader-feed.js?a055963611ea6261358618116af";
 
 type AcfData = Record<string, string | undefined>;
 type GlobalData = Record<string, string | undefined>;
@@ -70,16 +71,21 @@ function FeatureCard({
 
 export default function DroneRealizationsPage() {
   const widgetContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [texts, setTexts] = useState<AcfData>({});
   const [global, setGlobal] = useState<GlobalData>({});
+
+  // Skeleton chowamy gdy Trustindex wstrzyknie cokolwiek do kontenera
+  const [isWidgetLoaded, setIsWidgetLoaded] = useState(false);
 
   const { loading, fetchWithLoader } = usePageLoader();
 
   const loadTextsData = useCallback(() => {
     fetchWithLoader(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${DRONE_PAGE_ID}?_fields=acf&t=${Date.now()}`);
+        const res = await fetch(
+          `${WP_BASE}/wp-json/wp/v2/pages/${DRONE_PAGE_ID}?_fields=acf&t=${Date.now()}`
+        );
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setTexts(json.acf);
@@ -93,7 +99,9 @@ export default function DroneRealizationsPage() {
   const loadGlobalData = useCallback(() => {
     fetchWithLoader(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
+        const res = await fetch(
+          `${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`
+        );
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setGlobal(json.acf);
@@ -111,21 +119,52 @@ export default function DroneRealizationsPage() {
   }, [loadTextsData, loadGlobalData]);
 
   const phone = global.global_phone || "";
-  
-  // --- ŁADOWANIE SKRYPTU INSTAGRAM (Trustindex) ---
+
+  // --- ŁADOWANIE SKRYPTU TRUSTINDEX ---
+  // Zachowana oryginalna logika (script do kontenera) + dodany MutationObserver na skeleton
   useEffect(() => {
-    // Inicjalizacja skryptu dopiero, gdy loader zniknie i kontener jest w DOM
-    if (!loading && widgetContainerRef.current && !widgetContainerRef.current.querySelector("script[src*='trustindex']")) {
-      const script = document.createElement("script");
-      script.src = INSTAGRAM_SCRIPT_URL;
-      script.defer = true;
-      script.async = true;
-      widgetContainerRef.current.appendChild(script);
-    }
+    if (loading || !widgetContainerRef.current) return;
+
+    // Nie dodawaj skryptu drugi raz
+    if (widgetContainerRef.current.querySelector("script[src*='trustindex']")) return;
+
+    const container = widgetContainerRef.current;
+
+    // Obserwuj kontener — gdy Trustindex wstrzyknie treść, chowamy skeleton
+    const domObserver = new MutationObserver(() => {
+      const hasContent = Array.from(container.childNodes).some(
+        (node) => node.nodeName !== "SCRIPT"
+      );
+      if (hasContent) {
+        setIsWidgetLoaded(true);
+        domObserver.disconnect();
+      }
+    });
+    domObserver.observe(container, { childList: true, subtree: true });
+
+    // Fallback: po 10s chowamy skeleton niezależnie od wyniku
+    const timeout = setTimeout(() => {
+      setIsWidgetLoaded(true);
+      domObserver.disconnect();
+    }, 10000);
+
+    // Oryginalna logika — skrypt do kontenera, tak jak działało
+    const script = document.createElement("script");
+    script.src = INSTAGRAM_SCRIPT_URL;
+    script.defer = true;
+    script.async = true;
+    container.appendChild(script);
+
+    return () => {
+      clearTimeout(timeout);
+      domObserver.disconnect();
+    };
   }, [loading]);
 
-  // LOGIKA SEO
-  const pageTitle = texts?.drone_meta_title || "Nagrania dronem Nysa – Zdjęcia z powietrza | Opolskie Ubezpieczenia";
+  // --- LOGIKA SEO ---
+  const pageTitle =
+    texts?.drone_meta_title ||
+    "Nagrania dronem Nysa – Zdjęcia z powietrza | Opolskie Ubezpieczenia";
 
   useEffect(() => {
     document.title = pageTitle;
@@ -134,11 +173,16 @@ export default function DroneRealizationsPage() {
   const helmetContent = (
     <Helmet defer={false}>
       <title>{pageTitle}</title>
-      <meta name="description" content={texts?.drone_hero_desc || "Profesjonalne inspekcje dronem w Nysie i okolicach. Fotografia, nagrania z powietrza i szacowanie szkód rolniczych z drona."} />
+      <meta
+        name="description"
+        content={
+          texts?.drone_hero_desc ||
+          "Profesjonalne inspekcje dronem w Nysie i okolicach. Fotografia, nagrania z powietrza i szacowanie szkód rolniczych z drona."
+        }
+      />
     </Helmet>
   );
 
-  // Dodano loader z powrotem
   if (loading) return <>{helmetContent}<PageLoader /></>;
 
   return (
@@ -249,9 +293,21 @@ export default function DroneRealizationsPage() {
                       </h3>
                     </div>
 
-                    <div className="mt-6 w-full flex justify-center overflow-hidden" ref={widgetContainerRef}>
-                        {/* Trustindex wstrzyknie feed tutaj */}
-                    </div>
+                    {/* Skeleton — widoczny dopóki widget się nie załaduje */}
+                    {!isWidgetLoaded && (
+                      <div className="mt-6 w-full grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="aspect-square bg-gray-200/60 rounded-2xl animate-pulse" />
+                        <div className="aspect-square bg-gray-200/60 rounded-2xl animate-pulse" />
+                        <div className="aspect-square bg-gray-200/60 rounded-2xl animate-pulse hidden md:block" />
+                        <div className="aspect-square bg-gray-200/60 rounded-2xl animate-pulse hidden md:block" />
+                      </div>
+                    )}
+
+                    {/* Kontener widgetu — ZAWSZE w DOM, Trustindex sam go wypełni */}
+                    <div
+                      className="mt-6 w-full flex justify-center overflow-hidden"
+                      ref={widgetContainerRef}
+                    />
                   </div>
                 </div>
               </div>
@@ -262,9 +318,7 @@ export default function DroneRealizationsPage() {
                   <h2 className="text-2xl sm:text-3xl text-white">
                     {texts.drone_cta_title}
                   </h2>
-                  <p className="mt-3 text-white/85">
-                     {texts.drone_cta_desc}
-                  </p>
+                  <p className="mt-3 text-white/85">{texts.drone_cta_desc}</p>
 
                   <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
                     <a

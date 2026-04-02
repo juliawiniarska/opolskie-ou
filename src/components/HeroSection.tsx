@@ -75,7 +75,7 @@ export function HeroSection() {
       {/* OBRAZY: Zostawione fallbacki na sztywno zgodnie z prośbą */}
       <div className="pointer-events-none absolute inset-0 lg:hidden">
         <img
-          src={texts.hero_img_mobile || "/aaaaaa.png"}
+          src={texts.hero_img_mobile}
           alt=""
           className="h-full w-full object-cover object-bottom opacity-30"
         />
@@ -84,7 +84,7 @@ export function HeroSection() {
       <div className="pointer-events-none absolute inset-y-[-40px] right-0 hidden w-[100%] lg:block">
         <div className="relative h-full">
           <img
-            src={texts.hero_img_desktop || "aa.png"}
+            src={texts.hero_img_desktop}
             alt=""
             className="h-full w-full object-cover rounded-[4.5rem] opacity-50"
           />

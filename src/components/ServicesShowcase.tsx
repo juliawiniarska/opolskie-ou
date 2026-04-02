@@ -7,25 +7,9 @@ import { PageLoader, usePageLoader } from "../GlobalContext";
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 const OFFERS_PAGE_ID = 2690; 
+const HOME_PAGE_ID = 2688; 
 
 type AcfData = Record<string, string | undefined>;
-
-// --- LISTA UBEZPIECZYCIELI (Na sztywno, zestaw 1:1 z oryginału) ---
-const insurersList = [
-  { name: "PZU", logo: "/insurers/pzu.png" },
-  { name: "Agro Ubezpieczenia", logo: "/insurers/agro.png" },
-  { name: "Allianz", logo: "/insurers/allianz.png" },
-  { name: "Benefia", logo: "/insurers/benefia.jpg" },
-  { name: "Compensa", logo: "/insurers/compensa.png" },
-  { name: "ERGO Hestia", logo: "/insurers/ergo-hestia.png" },
-  { name: "Generali", logo: "/insurers/generali.png" },
-  { name: "InterRisk", logo: "/insurers/interrisk.png" },
-  { name: "Wiener", logo: "/insurers/wiener.png" },
-  { name: "Link4", logo: "/insurers/link4.png" },
-  { name: "Warta", logo: "/insurers/warta.jpg" },
-  { name: "Uniqa", logo: "/insurers/uniqa.png" },
-  { name: "Proama", logo: "/insurers/proama.png" },
-];
 
 export function ServicesShowcase() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -33,10 +17,15 @@ export function ServicesShowcase() {
   const [logoStart, setLogoStart] = useState(0);
   
   const [texts, setTexts] = useState<AcfData>({});
-  const { loading, fetchWithLoader } = usePageLoader();
+  const [homeTexts, setHomeTexts] = useState<AcfData>({});
+  
+  const { loading: loadingOffers, fetchWithLoader: fetchOffers } = usePageLoader();
+  const { loading: loadingHome, fetchWithLoader: fetchHome } = usePageLoader();
+
+  const isLoading = loadingOffers || loadingHome;
 
   const loadOffersData = useCallback(() => {
-    fetchWithLoader(async () => {
+    fetchOffers(async () => {
       try {
         const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${OFFERS_PAGE_ID}?_fields=acf&t=${Date.now()}`);
         if (res.ok) {
@@ -47,11 +36,41 @@ export function ServicesShowcase() {
         console.error("Błąd pobierania ofert z WP", e);
       }
     });
-  }, [fetchWithLoader]);
+  }, [fetchOffers]);
+
+  const loadHomeData = useCallback(() => {
+    fetchHome(async () => {
+      try {
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf&t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.acf) setHomeTexts(json.acf);
+        }
+      } catch (e) {
+        console.error("Błąd pobierania logotypów z WP", e);
+      }
+    });
+  }, [fetchHome]);
 
   useEffect(() => {
     loadOffersData();
-  }, [loadOffersData]);
+    loadHomeData();
+  }, [loadOffersData, loadHomeData]);
+
+  // Dynamiczne budowanie listy logotypów
+  const dynamicInsurers = useMemo(() => {
+    const list = [];
+    for (let i = 1; i <= 13; i++) {
+      const logoUrl = homeTexts[`insurer_${i}_logo`];
+      if (logoUrl && typeof logoUrl === 'string' && logoUrl.trim() !== '') {
+        list.push({
+          name: `Ubezpieczyciel ${i}`,
+          logo: logoUrl.trim()
+        });
+      }
+    }
+    return list;
+  }, [homeTexts]);
 
   useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 768);
@@ -61,21 +80,32 @@ export function ServicesShowcase() {
   }, []);
 
   useEffect(() => {
+    if (dynamicInsurers.length === 0) return;
     const id = setInterval(() => {
-      setLogoStart((prev) => (prev + 1) % insurersList.length);
+      setLogoStart((prev) => (prev + 1) % dynamicInsurers.length);
     }, 3500);
     return () => clearInterval(id);
-  }, []);
+  }, [dynamicInsurers.length]);
 
   const visibleCount = 5;
   const visibleInsurers = useMemo(() => {
-    return Array.from({ length: visibleCount }, (_, i) => insurersList[(logoStart + i) % insurersList.length]);
-  }, [logoStart]);
+    if (dynamicInsurers.length === 0) return [];
+    return Array.from({ length: Math.min(visibleCount, dynamicInsurers.length) }, (_, i) => 
+      dynamicInsurers[(logoStart + i) % dynamicInsurers.length]
+    );
+  }, [logoStart, dynamicInsurers]);
 
-  const handlePrev = () => setLogoStart((prev) => (prev - 1 + insurersList.length) % insurersList.length);
-  const handleNext = () => setLogoStart((prev) => (prev + 1) % insurersList.length);
+  const handlePrev = () => {
+    if (dynamicInsurers.length === 0) return;
+    setLogoStart((prev) => (prev - 1 + dynamicInsurers.length) % dynamicInsurers.length);
+  };
+  
+  const handleNext = () => {
+    if (dynamicInsurers.length === 0) return;
+    setLogoStart((prev) => (prev + 1) % dynamicInsurers.length);
+  };
 
-  if (loading) return <PageLoader />;
+  if (isLoading) return <PageLoader />;
 
   return (
     <section id="oferta" className="py-24 sm:py-28 lg:py-32 bg-[#F5F1E8] relative">
@@ -211,51 +241,55 @@ export function ServicesShowcase() {
         </div>
 
         {/* Karuzela logo (mobile) */}
-        <div className="mt-12 md:hidden">
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {insurersList.map((insurer, idx) => (
-              <div key={idx} className="basis-1/3 min-w-[33%] flex-shrink-0 flex justify-center">
-                <div className="h-20 w-full max-w-[120px] rounded-2xl bg-white border border-[#2D7A5F]/10 flex items-center justify-center p-2">
-                  <img src={insurer.logo} alt={insurer.name} className="max-h-10 w-auto object-contain" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Karuzela logo (desktop) */}
-        <div className="mt-16 hidden md:block">
-          <div className="rounded-3xl bg-[#2D7A5F]/5 px-6 py-6 lg:px-8 lg:py-7">
-            <div className="flex items-center justify-center gap-6 lg:gap-8">
-              {visibleInsurers.map((insurer, idx) => (
-                <div key={idx} className="flex-1 max-w-[1800px] flex justify-center">
-                  <div className="h-24 lg:h-28 w-full rounded-3xl bg-white border border-[#2D7A5F]/10 flex items-center justify-center p-3">
-                    <img src={insurer.logo} alt={insurer.name} className="max-h-16 w-auto object-contain" />
+        {dynamicInsurers.length > 0 && (
+          <div className="mt-12 md:hidden">
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {dynamicInsurers.map((insurer, idx) => (
+                <div key={idx} className="basis-1/3 min-w-[33%] flex-shrink-0 flex justify-center">
+                  <div className="h-20 w-full max-w-[120px] rounded-2xl bg-white border border-[#2D7A5F]/10 flex items-center justify-center p-2">
+                    <img src={insurer.logo} alt={insurer.name} className="max-h-10 w-auto object-contain" />
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        )}
 
-            <div className="mt-6 flex justify-center gap-3">
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="h-9 w-9 rounded-full border border-[#2D7A5F]/20 flex items-center justify-center bg-white hover:bg-[#2D7A5F]/5 transition-colors"
-                aria-label="Poprzednie logotypy"
-              >
-                <ChevronLeft className="w-4 h-4 text-[#2D7A5F]" />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                className="h-9 w-9 rounded-full border border-[#2D7A5F]/20 flex items-center justify-center bg-white hover:bg-[#2D7A5F]/5 transition-colors"
-                aria-label="Następne logotypy"
-              >
-                <ChevronRight className="w-4 h-4 text-[#2D7A5F]" />
-              </button>
+        {/* Karuzela logo (desktop) */}
+        {dynamicInsurers.length > 0 && (
+          <div className="mt-16 hidden md:block">
+            <div className="rounded-3xl bg-[#2D7A5F]/5 px-6 py-6 lg:px-8 lg:py-7">
+              <div className="flex items-center justify-center gap-6 lg:gap-8">
+                {visibleInsurers.map((insurer, idx) => (
+                  <div key={idx} className="flex-1 max-w-[1800px] flex justify-center">
+                    <div className="h-24 lg:h-28 w-full rounded-3xl bg-white border border-[#2D7A5F]/10 flex items-center justify-center p-3">
+                      <img src={insurer.logo} alt={insurer.name} className="max-h-16 w-auto object-contain" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="h-9 w-9 rounded-full border border-[#2D7A5F]/20 flex items-center justify-center bg-white hover:bg-[#2D7A5F]/5 transition-colors"
+                  aria-label="Poprzednie logotypy"
+                >
+                  <ChevronLeft className="w-4 h-4 text-[#2D7A5F]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="h-9 w-9 rounded-full border border-[#2D7A5F]/20 flex items-center justify-center bg-white hover:bg-[#2D7A5F]/5 transition-colors"
+                  aria-label="Następne logotypy"
+                >
+                  <ChevronRight className="w-4 h-4 text-[#2D7A5F]" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
