@@ -30,7 +30,7 @@ export function CTASection() {
   const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf`);
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setTexts(json.acf);
@@ -44,7 +44,7 @@ export function CTASection() {
   const loadGlobalData = useCallback(() => {
     fetchGlobalReq(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setGlobal(json.acf);

@@ -19,7 +19,7 @@ export function Footer() {
   const loadGlobalData = useCallback(() => {
     fetchWithLoader(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setGlobal(json.acf);

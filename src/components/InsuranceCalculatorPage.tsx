@@ -91,7 +91,7 @@ export default function InsuranceCalculatorPage() {
   const loadPage = useCallback(() => {
     fetchPageData(async () => {
       try {
-        const url = `${WP_BASE}/wp-json/wp/v2/pages/${PAGE_ID}?_fields=acf`;
+        const url = `${WP_BASE}/wp-json/wp/v2/pages/${PAGE_ID}?_fields=acf&t=${Date.now()}`;
         const res = await fetch(url);
         if (res.ok) {
           const json = await res.json();
@@ -107,7 +107,7 @@ export default function InsuranceCalculatorPage() {
   const loadGlobal = useCallback(() => {
     fetchGlobalData(async () => {
       try {
-        const url = `${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`;
+        const url = `${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`;
         const res = await fetch(url);
         if (res.ok) {
           const json = await res.json();

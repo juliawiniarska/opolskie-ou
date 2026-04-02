@@ -274,7 +274,7 @@ export default function BlogPostPage() {
   // 0) Pobieranie tekstów z ACF przez Global Loadera
   const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
-      const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_SETTINGS_ID}?_fields=acf`;
+      const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_SETTINGS_ID}?_fields=acf&t=${Date.now()}`;
       const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
@@ -366,7 +366,8 @@ export default function BlogPostPage() {
           `${WP_BASE}/wp-json/wp/v2/comments` +
           `?post=${encodeURIComponent(post.id)}` +
           `&per_page=50&orderby=date&order=desc` +
-          `&_fields=id,date,author_name,content`;
+          `&_fields=id,date,author_name,content` +
+          `&t=${Date.now()}`;
 
         const res = await fetch(url);
         if (!res.ok) throw new Error(`WP comments error: ${res.status}`);
@@ -425,7 +426,7 @@ export default function BlogPostPage() {
 
     setSending(true);
     try {
-      const res = await fetch(`${WP_BASE}/wp-json/ou/v1/comment`, {
+      const res = await fetch(`${WP_BASE}/wp-json/ou/v1/comment&t=${Date.now()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -454,7 +455,8 @@ export default function BlogPostPage() {
           `${WP_BASE}/wp-json/wp/v2/comments` +
           `?post=${encodeURIComponent(post.id)}` +
           `&per_page=50&orderby=date&order=desc` +
-          `&_fields=id,date,author_name,content`;
+          `&_fields=id,date,author_name,content` +
+          `&t=${Date.now()}`;
         const r2 = await fetch(refetch);
         if (r2.ok) {
           const data = (await r2.json()) as WpComment[];

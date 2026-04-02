@@ -66,7 +66,7 @@ function SimpleContactForm({
     wpFormData.append('_wpcf7_unit_tag', 'rte');
 
     try {
-      let url = `${WP_DOMAIN}/wp/wp-json/contact-form-7/v1/contact-forms/${WP_FORM_ID}/feedback`;
+      let url = `${WP_DOMAIN}/wp/wp-json/contact-form-7/v1/contact-forms/${WP_FORM_ID}/feedback?t=${Date.now()}`;
       
       let response = await fetch(url, {
         method: "POST",
@@ -78,7 +78,7 @@ function SimpleContactForm({
 
       if (!response.ok || !isJson) {
         console.warn("Standardowa ścieżka API nie zadziałała, próbuję metody alternatywnej...");
-        url = `${WP_DOMAIN}/wp/?rest_route=/contact-form-7/v1/contact-forms/${WP_FORM_ID}/feedback`;
+        url = `${WP_DOMAIN}/wp/?rest_route=/contact-form-7/v1/contact-forms/${WP_FORM_ID}/feedback?t=${Date.now()}`;
         
         response = await fetch(url, {
           method: "POST",
@@ -437,7 +437,7 @@ export default function ContactPage() {
   const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
       try {
-        const res = await fetch(`${WP_DOMAIN}/wp/wp-json/wp/v2/pages/${CONTACT_PAGE_ID}?_fields=acf`);
+        const res = await fetch(`${WP_DOMAIN}/wp/wp-json/wp/v2/pages/${CONTACT_PAGE_ID}?_fields=acf&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setTexts(json.acf);
@@ -452,7 +452,7 @@ export default function ContactPage() {
   const loadGlobalData = useCallback(() => {
     fetchGlobalReq(async () => {
       try {
-        const res = await fetch(`${WP_DOMAIN}/wp/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+        const res = await fetch(`${WP_DOMAIN}/wp/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setGlobal(json.acf);

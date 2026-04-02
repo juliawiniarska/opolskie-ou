@@ -170,7 +170,7 @@ export default function CreditCalculatorPage() {
 
   const loadGlobalData = useCallback(() => {
     fetchGlobal(async () => {
-      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
+      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
       if (res.ok) { const json = await res.json(); if (json.acf) setGlobal(json.acf); }
     });
   }, [fetchGlobal]);
@@ -178,7 +178,7 @@ export default function CreditCalculatorPage() {
   const loadAcfData = useCallback(() => {
     if (!CALC_PAGE_ID) return;
     fetchAcf(async () => {
-      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${CALC_PAGE_ID}?_fields=acf`);
+      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${CALC_PAGE_ID}?_fields=acf&t=${Date.now()}`);
       if (res.ok) { const json = await res.json(); if (json.acf) setAcf(json.acf); }
     });
   }, [fetchAcf]);
