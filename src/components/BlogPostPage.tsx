@@ -15,7 +15,7 @@ import {
   MessageCircle,
   Send,
 } from "lucide-react";
-
+import { Helmet } from "react-helmet-async"; // DODANO IMPORT
 import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
@@ -480,232 +480,243 @@ export default function BlogPostPage() {
     }
   };
 
+  // --- LOGIKA HELMET (DODANO defer={false} do poprawnego działania) ---
+  const helmetContent = (
+    <Helmet defer={false}>
+      <title>{post ? `${post.title} | Opolskie Ubezpieczenia` : "Wczytywanie wpisu..."}</title>
+      <meta name="description" content={post ? post.excerpt : "Artykuł ekspercki na blogu Opolskie Ubezpieczenia."} />
+    </Helmet>
+  );
+
   // Pokaż pełnoekranowy PageLoader, jeśli ładują się teksty z ACF lub post z WordPressa
-  if (loadingTexts || loading) return <PageLoader />;
+  if (loadingTexts || loading) return <>{helmetContent}<PageLoader /></>;
 
   return (
-    <main className="bg-[#F5F1E8]">
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-12 sm:pb-14 lg:pb-16">
-        {/* dekoracje */}
-        <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
-        <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
-        <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
+    <>
+      {helmetContent}
+      <main className="bg-[#F5F1E8]">
+        {/* HERO */}
+        <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-12 sm:pb-14 lg:pb-16">
+          {/* dekoracje */}
+          <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
+          <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
+          <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
 
-        <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="mt-10 grid lg:grid-cols-12 gap-10 lg:gap-14 items-end">
-            <div className="lg:col-span-8 max-w-4xl">
-              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 sm:mb-8 border border-white/20">
-                <BookOpen className="w-9 h-9 text-white" strokeWidth={1.5} />
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight">
-                {post?.title ?? "Wpis"}
-              </h1>
-
-              <div className="mt-5 flex flex-wrap items-center gap-3 text-white/80">
-                {post?.dateISO && (
-                  <span className="inline-flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {formatDatePL(post.dateISO)}
-                  </span>
-                )}
-
-                {meta && (
-                  <>
-                    <span className="text-white/35">•</span>
-                    <span className="inline-flex items-center gap-2">
-                      <meta.Icon className="w-4 h-4" />
-                      {meta.topic}
-                    </span>
-                    <span className="text-white/35">•</span>
-                    <span>{meta.minutes} min czytania</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="lg:col-span-4">
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl">
-                <h3 className="text-white text-lg sm:text-xl mb-2">
-                  {texts.single_cta_title}
-                </h3>
-                <p className="text-white/80 text-sm leading-relaxed mb-6">
-                  {texts.single_cta_desc}
-                </p>
-
-                <div className="space-y-3">
-                  <a
-                    href={`tel:${(texts.single_phone || "").replace(/\s/g, "")}`}
-                    className="w-full inline-flex items-center justify-center rounded-xl bg-white text-[#2D7A5F] px-5 py-3 font-medium hover:bg-[#F5F1E8] transition-colors"
-                  >
-                    <Phone className="w-4 h-4 mr-2" /> Zadzwoń: {texts.single_phone}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </a>
-                  <a
-                    href={`${WP_BASE2}/kontakt/`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center rounded-xl border border-white/30 bg-transparent text-white px-5 py-3 hover:bg-white/10 transition-colors"
-                  >
-                    <Mail className="w-4 h-4 mr-2" /> {texts.single_email_btn}
-                  </a>
+          <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
+            <div className="mt-10 grid lg:grid-cols-12 gap-10 lg:gap-14 items-end">
+              <div className="lg:col-span-8 max-w-4xl">
+                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 sm:mb-8 border border-white/20">
+                  <BookOpen className="w-9 h-9 text-white" strokeWidth={1.5} />
                 </div>
 
-                <div className="mt-6 pt-5 border-t border-white/20 text-xs text-white/70">
-                  {texts.single_cta_footer}
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight">
+                  {post?.title ?? "Wpis"}
+                </h1>
+
+                <div className="mt-5 flex flex-wrap items-center gap-3 text-white/80">
+                  {post?.dateISO && (
+                    <span className="inline-flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {formatDatePL(post.dateISO)}
+                    </span>
+                  )}
+
+                  {meta && (
+                    <>
+                      <span className="text-white/35">•</span>
+                      <span className="inline-flex items-center gap-2">
+                        <meta.Icon className="w-4 h-4" />
+                        {meta.topic}
+                      </span>
+                      <span className="text-white/35">•</span>
+                      <span>{meta.minutes} min czytania</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="lg:col-span-4">
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl">
+                  <h3 className="text-white text-lg sm:text-xl mb-2">
+                    {texts.single_cta_title}
+                  </h3>
+                  <p className="text-white/80 text-sm leading-relaxed mb-6">
+                    {texts.single_cta_desc}
+                  </p>
+
+                  <div className="space-y-3">
+                    <a
+                      href={`tel:${(texts.single_phone || "").replace(/\s/g, "")}`}
+                      className="w-full inline-flex items-center justify-center rounded-xl bg-white text-[#2D7A5F] px-5 py-3 font-medium hover:bg-[#F5F1E8] transition-colors"
+                    >
+                      <Phone className="w-4 h-4 mr-2" /> Zadzwoń: {texts.single_phone}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </a>
+                    <a
+                      href={`${WP_BASE2}/kontakt/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center rounded-xl border border-white/30 bg-transparent text-white px-5 py-3 hover:bg-white/10 transition-colors"
+                    >
+                      <Mail className="w-4 h-4 mr-2" /> {texts.single_email_btn}
+                    </a>
+                  </div>
+
+                  <div className="mt-6 pt-5 border-t border-white/20 text-xs text-white/70">
+                    {texts.single_cta_footer}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CONTENT (WYŚRODKOWANY) */}
-      <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8]">
-        <div className="max-w-[980px] mx-auto px-4 sm:px-6 lg:px-8">
-          {errorMsg && (
-            <div className="bg-white rounded-3xl p-8 shadow-lg border border-[#2D7A5F]/10">
-              <div className="text-lg text-[#1A1A1A] mb-2">Ups…</div>
-              <div className="text-[#6B6B6B]">{errorMsg}</div>
-              <div className="mt-6">
-                <Link
-                  to="/blog"
-                  className="inline-flex items-center justify-center rounded-2xl bg-white border border-[#2D7A5F]/15 text-[#2D7A5F] px-7 py-4 hover:bg-[#2D7A5F]/5 transition"
-                >
-                  Wróć do listy wpisów
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {post ? (
-            <article className="max-w-[900px] mx-auto">
-              {post.image && (
-                <div className="bg-white rounded-3xl p-3 sm:p-4 shadow-lg border border-[#2D7A5F]/10 mb-8">
-                  <div className="relative w-full overflow-hidden rounded-2xl bg-[#2D7A5F]/5 border border-[#2D7A5F]/10">
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="w-full h-auto object-cover"
-                      loading="lazy"
-                    />
-                  </div>
+        {/* CONTENT (WYŚRODKOWANY) */}
+        <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8]">
+          <div className="max-w-[980px] mx-auto px-4 sm:px-6 lg:px-8">
+            {errorMsg && (
+              <div className="bg-white rounded-3xl p-8 shadow-lg border border-[#2D7A5F]/10">
+                <div className="text-lg text-[#1A1A1A] mb-2">Ups…</div>
+                <div className="text-[#6B6B6B]">{errorMsg}</div>
+                <div className="mt-6">
+                  <Link
+                    to="/blog"
+                    className="inline-flex items-center justify-center rounded-2xl bg-white border border-[#2D7A5F]/15 text-[#2D7A5F] px-7 py-4 hover:bg-[#2D7A5F]/5 transition"
+                  >
+                    Wróć do listy wpisów
+                  </Link>
                 </div>
-              )}
-
-              <div className="bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
-                <div dangerouslySetInnerHTML={{ __html: post.html }} />
               </div>
+            )}
 
-              {/* COMMENTS */}
-              <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
-                <div className="flex items-center gap-2 mb-6">
-                  <MessageCircle className="w-5 h-5 text-[#2D7A5F]" />
-                  <h3 className="text-xl sm:text-2xl font-semibold text-[#1A1A1A]">Komentarze</h3>
-                </div>
-
-                {loadingComments ? (
-                  <div className="space-y-3">
-                    <div className="h-4 bg-[#2D7A5F]/10 rounded-xl w-1/2 animate-pulse" />
-                    <div className="h-4 bg-[#2D7A5F]/10 rounded-xl w-2/3 animate-pulse" />
-                    <div className="h-4 bg-[#2D7A5F]/10 rounded-xl w-1/3 animate-pulse" />
-                  </div>
-                ) : commentError ? (
-                  <div className="text-sm text-[#6B6B6B]">{commentError}</div>
-                ) : comments.length === 0 ? (
-                  <div className="text-sm text-[#6B6B6B]">Brak komentarzy — bądź pierwszy 🙂</div>
-                ) : (
-                  <div className="space-y-5">
-                    {comments.map((c) => (
-                      <div key={c.id} className="rounded-2xl border border-[#2D7A5F]/10 p-4 sm:p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="font-medium text-[#1A1A1A]">{c.author}</div>
-                          <div className="text-xs text-[#6B6B6B]">{formatDatePL(c.dateISO)}</div>
-                        </div>
-                        <p className="mt-3 text-[15px] sm:text-base text-[#4B4B4B] leading-relaxed whitespace-pre-wrap">
-                          {c.text}
-                        </p>
-                      </div>
-                    ))}
+            {post ? (
+              <article className="max-w-[900px] mx-auto">
+                {post.image && (
+                  <div className="bg-white rounded-3xl p-3 sm:p-4 shadow-lg border border-[#2D7A5F]/10 mb-8">
+                    <div className="relative w-full overflow-hidden rounded-2xl bg-[#2D7A5F]/5 border border-[#2D7A5F]/10">
+                      <img
+                        src={post.image}
+                        alt={post.title}
+                        className="w-full h-auto object-cover"
+                        loading="lazy"
+                      />
+                    </div>
                   </div>
                 )}
 
-                <div className="mt-10 pt-8 border-t border-[#2D7A5F]/10">
-                  <h4 className="text-lg font-semibold text-[#1A1A1A] mb-4">Dodaj komentarz</h4>
-
-                  {sentOk && (
-                    <div className="mb-4 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 px-4 py-3 text-sm text-[#2D7A5F]">
-                      Komentarz wysłany.
-                    </div>
-                  )}
-
-                  {commentError && (
-                    <div className="mb-4 rounded-2xl bg-black/5 border border-black/10 px-4 py-3 text-sm text-[#6B6B6B]">
-                      {commentError}
-                    </div>
-                  )}
-
-                  <form onSubmit={submitComment} className="space-y-4">
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-[#6B6B6B] mb-1">Imię*</label>
-                        <input
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25"
-                          placeholder=""
-                          autoComplete="name"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-[#6B6B6B] mb-1">E-mail*</label>
-                        <input
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          type="email"
-                          className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25"
-                          placeholder=""
-                          autoComplete="email"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-[#6B6B6B] mb-1">Komentarz*</label>
-                      <textarea
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        rows={5}
-                        className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25 resize-none"
-                        placeholder="Napisz komentarz…"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={sending}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2D7A5F] text-white px-6 py-3 font-medium hover:opacity-95 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <Send className="w-4 h-4" />
-                      {sending ? "Wysyłanie…" : "Wyślij komentarz"}
-                    </button>
-                  </form>
+                <div className="bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
+                  <div dangerouslySetInnerHTML={{ __html: post.html }} />
                 </div>
-              </div>
 
-              <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <Link
-                  to="/blog"
-                  className="inline-flex items-center justify-center rounded-2xl bg-white border border-[#2D7A5F]/15 text-[#2D7A5F] px-7 py-4 hover:bg-[#2D7A5F]/5 transition"
-                >
-                  Wróć do listy wpisów
-                </Link>
-              </div>
-            </article>
-          ) : null}
-        </div>
-      </section>
-    </main>
+                {/* COMMENTS */}
+                <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
+                  <div className="flex items-center gap-2 mb-6">
+                    <MessageCircle className="w-5 h-5 text-[#2D7A5F]" />
+                    <h3 className="text-xl sm:text-2xl font-semibold text-[#1A1A1A]">Komentarze</h3>
+                  </div>
+
+                  {loadingComments ? (
+                    <div className="space-y-3">
+                      <div className="h-4 bg-[#2D7A5F]/10 rounded-xl w-1/2 animate-pulse" />
+                      <div className="h-4 bg-[#2D7A5F]/10 rounded-xl w-2/3 animate-pulse" />
+                      <div className="h-4 bg-[#2D7A5F]/10 rounded-xl w-1/3 animate-pulse" />
+                    </div>
+                  ) : commentError ? (
+                    <div className="text-sm text-[#6B6B6B]">{commentError}</div>
+                  ) : comments.length === 0 ? (
+                    <div className="text-sm text-[#6B6B6B]">Brak komentarzy — bądź pierwszy 🙂</div>
+                  ) : (
+                    <div className="space-y-5">
+                      {comments.map((c) => (
+                        <div key={c.id} className="rounded-2xl border border-[#2D7A5F]/10 p-4 sm:p-5">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="font-medium text-[#1A1A1A]">{c.author}</div>
+                            <div className="text-xs text-[#6B6B6B]">{formatDatePL(c.dateISO)}</div>
+                          </div>
+                          <p className="mt-3 text-[15px] sm:text-base text-[#4B4B4B] leading-relaxed whitespace-pre-wrap">
+                            {c.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-10 pt-8 border-t border-[#2D7A5F]/10">
+                    <h4 className="text-lg font-semibold text-[#1A1A1A] mb-4">Dodaj komentarz</h4>
+
+                    {sentOk && (
+                      <div className="mb-4 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 px-4 py-3 text-sm text-[#2D7A5F]">
+                        Komentarz wysłany.
+                      </div>
+                    )}
+
+                    {commentError && (
+                      <div className="mb-4 rounded-2xl bg-black/5 border border-black/10 px-4 py-3 text-sm text-[#6B6B6B]">
+                        {commentError}
+                      </div>
+                    )}
+
+                    <form onSubmit={submitComment} className="space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm text-[#6B6B6B] mb-1">Imię*</label>
+                          <input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25"
+                            placeholder=""
+                            autoComplete="name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-[#6B6B6B] mb-1">E-mail*</label>
+                          <input
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            type="email"
+                            className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25"
+                            placeholder=""
+                            autoComplete="email"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-[#6B6B6B] mb-1">Komentarz*</label>
+                        <textarea
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          rows={5}
+                          className="w-full rounded-2xl border border-[#2D7A5F]/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2D7A5F]/25 resize-none"
+                          placeholder="Napisz komentarz…"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={sending}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2D7A5F] text-white px-6 py-3 font-medium hover:opacity-95 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <Send className="w-4 h-4" />
+                        {sending ? "Wysyłanie…" : "Wyślij komentarz"}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                  <Link
+                    to="/blog"
+                    className="inline-flex items-center justify-center rounded-2xl bg-white border border-[#2D7A5F]/15 text-[#2D7A5F] px-7 py-4 hover:bg-[#2D7A5F]/5 transition"
+                  >
+                    Wróć do listy wpisów
+                  </Link>
+                </div>
+              </article>
+            ) : null}
+          </div>
+        </section>
+      </main>
+    </>
   );
 }
