@@ -15,8 +15,7 @@ import {
   MessageCircle,
   Send,
 } from "lucide-react";
-import { Helmet } from "react-helmet-async"; // DODANO
-
+import { Helmet } from "react-helmet-async";
 import { PageLoader, usePageLoader } from "../GlobalContext";
 
 // --- KONFIGURACJA ---
@@ -481,11 +480,16 @@ export default function BlogPostPage() {
     }
   };
 
-  // --- DYNAMICZNY HELMET (DODANO key={slug} dla pewności odświeżania) ---
+  // --- LOGIKA HELMET (DODANO key={slug} dla pewności odświeżania) ---
   const helmetContent = (
     <Helmet defer={false} key={slug}>
-      <title>{post ? `${post.title} | Opolskie Ubezpieczenia` : "Wczytywanie wpisu... | Opolskie Ubezpieczenia"}</title>
-      <meta name="description" content={post ? post.excerpt : "Artykuł ekspercki na blogu multiagencji Opolskie Ubezpieczenia."} />
+      <title>
+        {post?.title ? `${post.title} | Opolskie Ubezpieczenia` : "Wczytywanie wpisu... | Opolskie Ubezpieczenia"}
+      </title>
+      <meta 
+        name="description" 
+        content={post?.excerpt ? post.excerpt : "Artykuł ekspercki na blogu multiagencji Opolskie Ubezpieczenia z Nysy."} 
+      />
     </Helmet>
   );
 
