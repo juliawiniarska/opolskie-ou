@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Car, Heart, Home, Plane, Briefcase, Tractor } from "lucide-react";
+import { Helmet } from "react-helmet-async"; // DODANO IMPORT
 
 import { OfferPageHero } from "./offer/OfferPageHero";
 import { OfferDetails } from "./offer/OfferDetails";
@@ -103,38 +104,48 @@ export default function OfferDetailPage() {
     description: texts[`offer_${id}_highlight`]
   };
 
-  // Ustawienie Title strony
-  useEffect(() => {
-    if (title) {
-        document.title = `${title} — Opolskie Ubezpieczenia`;
-    }
-  }, [title]);
+  // --- LOGIKA SEO ---
+  const pageTitle = texts[`offer_${id}_meta_title`] || (title ? `${title} – Szczegóły oferty | Opolskie Ubezpieczenia` : "Szczegóły Oferty | Opolskie Ubezpieczenia");
 
-  if (loading) return <PageLoader />;
+  useEffect(() => {
+    document.title = pageTitle;
+  }, [pageTitle]);
+
+  const helmetContent = (
+    <Helmet defer={false} key={slug}>
+      <title>{pageTitle}</title>
+      <meta name="description" content={description ? description.substring(0, 160) : "Sprawdź szczegóły naszej oferty ubezpieczeniowej w Nysie."} />
+    </Helmet>
+  );
+
+  if (loading) return <>{helmetContent}<PageLoader /></>;
 
   return (
-    <main className="bg-[#F5F1E8]">
-      <OfferPageHero
-        title={title}
-        description={description}
-        category={category}
-        icon={mapItem.icon}
-        backTo="/#oferta"
-      />
+    <>
+      {helmetContent}
+      <main className="bg-[#F5F1E8]">
+        <OfferPageHero
+          title={title}
+          description={description}
+          category={category}
+          icon={mapItem.icon}
+          backTo="/#oferta"
+        />
 
-      <OfferDetails
-        includes={includes}
-        features={features}
-        highlight={highlight}
-        sideImageSrc={imageSrc}
-        sideImageAlt={imageAlt}
-      />
+        <OfferDetails
+          includes={includes}
+          features={features}
+          highlight={highlight}
+          sideImageSrc={imageSrc}
+          sideImageAlt={imageAlt}
+        />
 
-      <QuickActions />
+        <QuickActions />
 
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16 pb-10">
-        {/* Shortcody */}
-      </div>
-    </main>
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16 pb-10">
+          {/* Shortcody */}
+        </div>
+      </main>
+    </>
   );
 }

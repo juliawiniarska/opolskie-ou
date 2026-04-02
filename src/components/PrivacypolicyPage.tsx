@@ -5,6 +5,7 @@ import {
   Fingerprint
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react"; 
+import { Helmet } from "react-helmet-async"; // DODANO IMPORT HELMETA
 
 import { PageLoader, usePageLoader } from "../GlobalContext";
 
@@ -57,6 +58,20 @@ export default function PrivacyPolicyPage() {
   const { loading: loadingGlobal, fetchWithLoader: fetchGlobalReq } = usePageLoader();
 
   const isLoading = loadingPage || loadingGlobal;
+
+  // --- LOGIKA SEO ---
+  const pageTitle = texts?.privacy_meta_title || "Polityka prywatności i cookies | Opolskie Ubezpieczenia";
+
+  useEffect(() => {
+    document.title = pageTitle;
+  }, [pageTitle]);
+
+  const helmetContent = (
+    <Helmet defer={false}>
+      <title>{pageTitle}</title>
+      <meta name="description" content={texts?.privacy_hero_desc || "Zapoznaj się z naszą Polityką Prywatności. Zobacz, jak chronimy Twoje dane osobowe i w jakim celu wykorzystujemy pliki cookies w Multiagencji Opolskie Ubezpieczenia."} />
+    </Helmet>
+  );
 
   // 1. Pobieranie treści strony
   const loadPageData = useCallback(() => {
@@ -130,90 +145,93 @@ export default function PrivacyPolicyPage() {
     return { __html: fixedHtml };
   };
 
-  if (isLoading) return <PageLoader />;
+  if (isLoading) return <>{helmetContent}<PageLoader /></>;
 
   return (
-    <main className="bg-[#F5F1E8] min-h-screen">
-      {/* HERO SECTION */}
-      <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
-        <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
-        <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
-        <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
+    <>
+      {helmetContent}
+      <main className="bg-[#F5F1E8] min-h-screen">
+        {/* HERO SECTION */}
+        <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
+          <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
+          <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
+          <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
 
-        <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="max-w-4xl">
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl text-white leading-tight mb-5 font-bold break-words">
-              {texts.privacy_hero_title}
-            </h1>
-            <p className="text-base sm:text-lg text-white/80 leading-relaxed max-w-2xl">
-              {texts.privacy_hero_desc}
-            </p>
+          <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
+            <div className="max-w-4xl">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl text-white leading-tight mb-5 font-bold break-words">
+                {texts.privacy_hero_title}
+              </h1>
+              <p className="text-base sm:text-lg text-white/80 leading-relaxed max-w-2xl">
+                {texts.privacy_hero_desc}
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* GŁÓWNY KAFELEK */}
-      <section className="py-8 sm:py-20 lg:py-24 bg-[#F5F1E8]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-          
-          <div className="bg-white rounded-[40px] shadow-2xl shadow-[#2D7A5F]/5 p-6 sm:p-12 lg:p-20 border border-[#2D7A5F]/10">
+        {/* GŁÓWNY KAFELEK */}
+        <section className="py-8 sm:py-20 lg:py-24 bg-[#F5F1E8]">
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
             
-            {/* I. POLITYKA COOKIES */}
-            <PolicySection 
-              title={texts.privacy_sec1_title} 
-              icon={FileText}
-            >
-              {texts.privacy_sec1_html ? (
-                <div className="prose prose-green max-w-none text-[#4B4B4B]" dangerouslySetInnerHTML={renderHTML(texts.privacy_sec1_html)} />
-              ) : (
-                getList(texts.privacy_sec1_list).map((text: string, idx: number) => (
+            <div className="bg-white rounded-[40px] shadow-2xl shadow-[#2D7A5F]/5 p-6 sm:p-12 lg:p-20 border border-[#2D7A5F]/10">
+              
+              {/* I. POLITYKA COOKIES */}
+              <PolicySection 
+                title={texts.privacy_sec1_title} 
+                icon={FileText}
+              >
+                {texts.privacy_sec1_html ? (
+                  <div className="prose prose-green max-w-none text-[#4B4B4B]" dangerouslySetInnerHTML={renderHTML(texts.privacy_sec1_html)} />
+                ) : (
+                  getList(texts.privacy_sec1_list).map((text: string, idx: number) => (
+                    <PolicyPoint key={idx} number={idx + 1}>
+                      <div dangerouslySetInnerHTML={renderHTML(text)} />
+                    </PolicyPoint>
+                  ))
+                )}
+              </PolicySection>
+
+              {/* II. POLITYKA PRYWATNOŚCI */}
+              <PolicySection 
+                title={texts.privacy_sec2_title} 
+                icon={ShieldCheck}
+              >
+                {getList(texts.privacy_sec2_list).map((text: string, idx: number) => (
                   <PolicyPoint key={idx} number={idx + 1}>
                     <div dangerouslySetInnerHTML={renderHTML(text)} />
                   </PolicyPoint>
-                ))
-              )}
-            </PolicySection>
+                ))}
+              </PolicySection>
 
-            {/* II. POLITYKA PRYWATNOŚCI */}
-            <PolicySection 
-              title={texts.privacy_sec2_title} 
-              icon={ShieldCheck}
-            >
-              {getList(texts.privacy_sec2_list).map((text: string, idx: number) => (
-                <PolicyPoint key={idx} number={idx + 1}>
-                  <div dangerouslySetInnerHTML={renderHTML(text)} />
-                </PolicyPoint>
-              ))}
-            </PolicySection>
+              {/* OBOWIĄZEK INFORMACYJNY */}
+              <PolicySection 
+                title={texts.privacy_sec3_title} 
+                icon={Fingerprint}
+              >
+                {getKeyValueList(texts.privacy_sec3_list).map((item: any, idx: number) => (
+                  <PolicyPoint key={idx} number={idx + 1}>
+                    {item.t && <strong className="block text-[#1A1A1A] mb-1">{item.t}</strong>}
+                    <div dangerouslySetInnerHTML={renderHTML(item.c)} />
+                  </PolicyPoint>
+                ))}
+              </PolicySection>
 
-            {/* OBOWIĄZEK INFORMACYJNY */}
-            <PolicySection 
-              title={texts.privacy_sec3_title} 
-              icon={Fingerprint}
-            >
-              {getKeyValueList(texts.privacy_sec3_list).map((item: any, idx: number) => (
-                <PolicyPoint key={idx} number={idx + 1}>
-                  {item.t && <strong className="block text-[#1A1A1A] mb-1">{item.t}</strong>}
-                  <div dangerouslySetInnerHTML={renderHTML(item.c)} />
-                </PolicyPoint>
-              ))}
-            </PolicySection>
-
-            {/* STOPKA DOKUMENTU */}
-            <div className="mt-16 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="flex flex-col gap-1 text-center sm:text-left">
-                <p className="text-[#1A1A1A] font-extrabold text-sm uppercase tracking-widest">
-                  {COMPANY_NAME}
-                </p>
-                <p className="text-xs text-[#6B6B6B]">
-                  {texts.privacy_footer_date}
-                </p>
+              {/* STOPKA DOKUMENTU */}
+              <div className="mt-16 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex flex-col gap-1 text-center sm:text-left">
+                  <p className="text-[#1A1A1A] font-extrabold text-sm uppercase tracking-widest">
+                    {COMPANY_NAME}
+                  </p>
+                  <p className="text-xs text-[#6B6B6B]">
+                    {texts.privacy_footer_date}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-        </div>
-      </section>
-    </main>
+          </div>
+        </section>
+      </main>
+    </>
   );
 }

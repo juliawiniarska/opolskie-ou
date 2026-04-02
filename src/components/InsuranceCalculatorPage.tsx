@@ -90,7 +90,7 @@ export default function InsuranceCalculatorPage() {
   const isLoading = loadingPage || loadingGlobal;
 
   // --- LOGIKA SEO ---
-  const pageTitle = texts?.calc_meta_title || "Kalkulator Ubezpieczeń – Oblicz Składkę Online | Opolskie Ubezpieczenia";
+  const pageTitle = texts?.calc_meta_title || "Kalkulator ubezpieczeń – Oblicz składkę online | Opolskie Ubezpieczenia";
   
   useEffect(() => {
     document.title = pageTitle;
