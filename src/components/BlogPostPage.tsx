@@ -271,6 +271,15 @@ export default function BlogPostPage() {
   const [texts, setTexts] = useState<SinglePostACF>({});
   const { loading: loadingTexts, fetchWithLoader: fetchTexts } = usePageLoader();
 
+  // --- KLUCZOWA NAPRAWA TYTUŁU (MANUALNE WYMUSZENIE) ---
+  useEffect(() => {
+    if (post?.title) {
+      document.title = `${post.title} | Opolskie Ubezpieczenia`;
+    } else {
+      document.title = "Wczytywanie wpisu... | Opolskie Ubezpieczenia";
+    }
+  }, [post, slug]);
+
   // 0) Pobieranie tekstów z ACF przez Global Loadera
   const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
@@ -287,15 +296,6 @@ export default function BlogPostPage() {
     loadTextsData();
   }, [loadTextsData]);
 
-  // MANUALNE WYMUSZENIE TYTUŁU (naprawia problem z nawigacją wstecz)
-  useEffect(() => {
-    if (post?.title) {
-      document.title = `${post.title} | Opolskie Ubezpieczenia`;
-    } else {
-      document.title = "Wczytywanie wpisu... | Opolskie Ubezpieczenia";
-    }
-  }, [post, slug]);
-
   useEffect(() => {
     let aborted = false;
 
@@ -307,7 +307,7 @@ export default function BlogPostPage() {
 
       setLoading(true);
       setErrorMsg(null);
-      setPost(null); // Czyścimy post przy zmianie sluga
+      setPost(null); // Resetujemy post, aby wymusić przeładowanie Helmeta i document.title
 
       try {
         const url =
@@ -349,7 +349,7 @@ export default function BlogPostPage() {
       } catch {
         if (aborted) return;
         setPost(null);
-        setErrorMsg("Nie znaleziono wpisu.");
+        setErrorMsg("Nie znaleziono wpisu lub błąd serwera.");
       } finally {
         if (!aborted) setLoading(false);
       }
@@ -453,11 +453,13 @@ export default function BlogPostPage() {
         throw new Error(`HTTP ${res.status}`);
       }
 
+      // sukces: komentarz może trafić do moderacji w WP
       setName("");
       setEmail("");
       setCommentText("");
       setSentOk(true);
 
+      // dociągnij listę jeszcze raz
       try {
         const refetch =
           `${WP_BASE}/wp-json/wp/v2/comments` +
@@ -490,8 +492,8 @@ export default function BlogPostPage() {
 
   const helmetContent = (
     <Helmet key={slug} defer={false}>
-      <title>{post ? `${post.title} | Opolskie Ubezpieczenia` : "Wczytywanie wpisu... | Opolskie Ubezpieczenia"}</title>
-      <meta name="description" content={post ? post.excerpt : "Artykuł ekspercki na blogu multiagencji Opolskie Ubezpieczenia z Nysy."} />
+      <title>{post?.title ? `${post.title} | Opolskie Ubezpieczenia` : "Wczytywanie wpisu..."}</title>
+      <meta name="description" content={post?.excerpt ? post.excerpt : "Artykuł ekspercki na blogu Opolskie Ubezpieczenia."} />
     </Helmet>
   );
 
@@ -503,6 +505,7 @@ export default function BlogPostPage() {
       <main className="bg-[#F5F1E8]">
         {/* HERO */}
         <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-12 sm:pb-14 lg:pb-16">
+          {/* dekoracje */}
           <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
           <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
           <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
@@ -580,7 +583,7 @@ export default function BlogPostPage() {
         <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8]">
           <div className="max-w-[980px] mx-auto px-4 sm:px-6 lg:px-8">
             {errorMsg && (
-              <div className="bg-white rounded-3xl p-8 shadow-lg border border-[#2D7A5F]/10">
+              <div className="bg-white rounded-3xl p-8 shadow-lg border border-[#2D7A5F]/10 text-center">
                 <div className="text-lg text-[#1A1A1A] mb-2">Ups…</div>
                 <div className="text-[#6B6B6B]">{errorMsg}</div>
                 <div className="mt-6">
@@ -648,16 +651,13 @@ export default function BlogPostPage() {
 
                   <div className="mt-10 pt-8 border-t border-[#2D7A5F]/10">
                     <h4 className="text-lg font-semibold text-[#1A1A1A] mb-4">Dodaj komentarz</h4>
+
                     {sentOk && (
                       <div className="mb-4 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 px-4 py-3 text-sm text-[#2D7A5F]">
                         Komentarz wysłany.
                       </div>
                     )}
-                    {commentError && (
-                      <div className="mb-4 rounded-2xl bg-black/5 border border-black/10 px-4 py-3 text-sm text-[#6B6B6B]">
-                        {commentError}
-                      </div>
-                    )}
+
                     <form onSubmit={submitComment} className="space-y-4">
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div>
@@ -682,6 +682,7 @@ export default function BlogPostPage() {
                           />
                         </div>
                       </div>
+
                       <div>
                         <label className="block text-sm text-[#6B6B6B] mb-1">Komentarz*</label>
                         <textarea
@@ -692,6 +693,7 @@ export default function BlogPostPage() {
                           placeholder="Napisz komentarz…"
                         />
                       </div>
+
                       <button
                         type="submit"
                         disabled={sending}
