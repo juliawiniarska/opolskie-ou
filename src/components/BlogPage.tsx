@@ -303,7 +303,7 @@ export default function BlogPage() {
 
   // --- DYNAMICZNY TYTUŁ ---
   const currentTitle = useMemo(() => {
-    const base = "Porady i Wiedza Ubezpieczeniowa";
+    const base = "Porady i wiedza ubezpieczeniowa";
     const suffix = topic !== "Wszystkie" ? `: ${topic}` : "";
     return `${base}${suffix} | Opolskie Ubezpieczenia`;
   }, [topic]);

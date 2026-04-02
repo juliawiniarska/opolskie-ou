@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { Helmet } from "react-helmet-async"; // DODANO IMPORT
 
 import { PageLoader, usePageLoader } from "../GlobalContext";
 
@@ -123,155 +124,172 @@ export default function DroneRealizationsPage() {
     }
   }, [loading]);
 
+  // LOGIKA SEO
+  const pageTitle = texts?.drone_meta_title || "Nagrania dronem Nysa – Zdjęcia z powietrza | Opolskie Ubezpieczenia";
+
+  useEffect(() => {
+    document.title = pageTitle;
+  }, [pageTitle]);
+
+  const helmetContent = (
+    <Helmet defer={false}>
+      <title>{pageTitle}</title>
+      <meta name="description" content={texts?.drone_hero_desc || "Profesjonalne inspekcje dronem w Nysie i okolicach. Fotografia, nagrania z powietrza i szacowanie szkód rolniczych z drona."} />
+    </Helmet>
+  );
+
   // Dodano loader z powrotem
-  if (loading) return <PageLoader />;
+  if (loading) return <>{helmetContent}<PageLoader /></>;
 
   return (
-    <main className="bg-[#F5F1E8]">
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-12 sm:pb-14 lg:pb-16">
-        <div className="pointer-events-none absolute top-14 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
-        <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
-        <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
+    <>
+      {helmetContent}
+      <main className="bg-[#F5F1E8]">
+        {/* HERO */}
+        <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-12 sm:pb-14 lg:pb-16">
+          <div className="pointer-events-none absolute top-14 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
+          <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
+          <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
 
-        <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
-            <div className="lg:col-span-8 max-w-4xl">
-              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 sm:mb-8 border border-white/20">
-                <Camera className="w-9 h-9 text-white" strokeWidth={1.5} />
-              </div>
+          <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
+            <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-stretch">
+              <div className="lg:col-span-8 max-w-4xl">
+                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 sm:mb-8 border border-white/20">
+                  <Camera className="w-9 h-9 text-white" strokeWidth={1.5} />
+                </div>
 
-              <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
-                {texts.drone_hero_title}
-              </h1>
+                <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
+                  {texts.drone_hero_title}
+                </h1>
 
-              <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8 sm:mb-10 max-w-3xl">
-                {texts.drone_hero_desc}
-              </p>
-            </div>
-
-            <div className="lg:col-span-4 lg:flex lg:items-center">
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl w-full">
-                <h3 className="text-white text-xl sm:text-2xl mb-3">
-                  {texts.drone_contact_title}
-                </h3>
-                <p className="text-white/80 leading-relaxed mb-7 sm:mb-8">
-                  {texts.drone_contact_desc}
+                <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed mb-8 sm:mb-10 max-w-3xl">
+                  {texts.drone_hero_desc}
                 </p>
-
-                <div className="space-y-3 sm:space-y-4">
-                  {phone && (
-                    <a
-                      href={`tel:${phone.replace(/\s/g, "")}`}
-                      className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] rounded-xl transition-all shadow-lg group"
-                    >
-                      <Phone className="w-5 h-5" />
-                      <span className="font-medium">{phone}</span>
-                      <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
-                    </a>
-                  )}
-
-                  <a
-                    href={CONTACT_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-transparent hover:bg-white/10 text-white border border-white/30 rounded-xl transition-all"
-                  >
-                    <Mail className="w-5 h-5" />
-                    <span>Skontaktuj się z nami</span>
-                  </a>
-                </div>
-
-                <div className="mt-6 pt-5 border-t border-white/20 text-xs text-white/70">
-                  Odpowiemy szybko i dopasujemy wariant do Twojej sytuacji.
-                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* CONTENT */}
-      <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
-        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              <FeatureCard
-                category={texts.drone_feat_1_cat}
-                title={texts.drone_feat_1_title}
-                Icon={Wheat}
-                description={texts.drone_feat_1_desc}
-              />
+              <div className="lg:col-span-4 lg:flex lg:items-center">
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-6 sm:p-7 shadow-2xl w-full">
+                  <h3 className="text-white text-xl sm:text-2xl mb-3">
+                    {texts.drone_contact_title}
+                  </h3>
+                  <p className="text-white/80 leading-relaxed mb-7 sm:mb-8">
+                    {texts.drone_contact_desc}
+                  </p>
 
-              <FeatureCard
-                category={texts.drone_feat_2_cat}
-                title={texts.drone_feat_2_title}
-                Icon={ShieldCheck}
-                description={texts.drone_feat_2_desc}
-              />
+                  <div className="space-y-3 sm:space-y-4">
+                    {phone && (
+                      <a
+                        href={`tel:${phone.replace(/\s/g, "")}`}
+                        className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-white hover:bg-[#F5F1E8] text-[#2D7A5F] rounded-xl transition-all shadow-lg group"
+                      >
+                        <Phone className="w-5 h-5" />
+                        <span className="font-medium">{phone}</span>
+                        <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
+                      </a>
+                    )}
 
-              <FeatureCard
-                category={texts.drone_feat_3_cat}
-                title={texts.drone_feat_3_title}
-                Icon={Video}
-                description={texts.drone_feat_3_desc}
-              />
-            </div>
-
-            {/* SEKCJA FEED Z INSTAGRAMA */}
-            <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-                <div className="shrink-0 w-12 h-12 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-[#2D7A5F]" />
-                </div>
-
-                <div className="min-w-0 w-full">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 flex-wrap">
-                    <h3 className="text-xl sm:text-2xl text-[#1A1A1A]">
-                      {texts.drone_insta_title}
-                    </h3>
+                    <a
+                      href={CONTACT_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-3 w-full px-6 py-4 bg-transparent hover:bg-white/10 text-white border border-white/30 rounded-xl transition-all"
+                    >
+                      <Mail className="w-5 h-5" />
+                      <span>Skontaktuj się z nami</span>
+                    </a>
                   </div>
 
-                  <div className="mt-6 w-full flex justify-center overflow-hidden" ref={widgetContainerRef}>
-                     {/* Trustindex wstrzyknie feed tutaj */}
+                  <div className="mt-6 pt-5 border-t border-white/20 text-xs text-white/70">
+                    Odpowiemy szybko i dopasujemy wariant do Twojej sytuacji.
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </section>
 
-            {/* dolne CTA */}
-            <div className="mt-10 bg-[#2D7A5F] rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
-              <div className="relative text-center">
-                <h2 className="text-2xl sm:text-3xl text-white">
-                  {texts.drone_cta_title}
-                </h2>
-                <p className="mt-3 text-white/85">
-                   {texts.drone_cta_desc}
-                </p>
+        {/* CONTENT */}
+        <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
+          <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                <FeatureCard
+                  category={texts.drone_feat_1_cat}
+                  title={texts.drone_feat_1_title}
+                  Icon={Wheat}
+                  description={texts.drone_feat_1_desc}
+                />
 
-                <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
-                  <a
-                    href={CONTACT_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-2xl bg-white text-[#2D7A5F] px-7 py-4 font-medium hover:bg-[#F5F1E8] transition"
-                  >
-                    Zamów darmową wycenę <ArrowRight className="w-4 h-4 ml-2" />
-                  </a>
-                  {phone && (
+                <FeatureCard
+                  category={texts.drone_feat_2_cat}
+                  title={texts.drone_feat_2_title}
+                  Icon={ShieldCheck}
+                  description={texts.drone_feat_2_desc}
+                />
+
+                <FeatureCard
+                  category={texts.drone_feat_3_cat}
+                  title={texts.drone_feat_3_title}
+                  Icon={Video}
+                  description={texts.drone_feat_3_desc}
+                />
+              </div>
+
+              {/* SEKCJA FEED Z INSTAGRAMA */}
+              <div className="mt-10 bg-white rounded-3xl p-7 sm:p-9 shadow-lg border border-[#2D7A5F]/10">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+                  <div className="shrink-0 w-12 h-12 rounded-2xl bg-[#2D7A5F]/10 border border-[#2D7A5F]/15 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-[#2D7A5F]" />
+                  </div>
+
+                  <div className="min-w-0 w-full">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 flex-wrap">
+                      <h3 className="text-xl sm:text-2xl text-[#1A1A1A]">
+                        {texts.drone_insta_title}
+                      </h3>
+                    </div>
+
+                    <div className="mt-6 w-full flex justify-center overflow-hidden" ref={widgetContainerRef}>
+                        {/* Trustindex wstrzyknie feed tutaj */}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* dolne CTA */}
+              <div className="mt-10 bg-[#2D7A5F] rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
+                <div className="relative text-center">
+                  <h2 className="text-2xl sm:text-3xl text-white">
+                    {texts.drone_cta_title}
+                  </h2>
+                  <p className="mt-3 text-white/85">
+                     {texts.drone_cta_desc}
+                  </p>
+
+                  <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
                     <a
-                      href={`tel:${phone.replace(/\s/g, "")}`}
-                      className="inline-flex items-center justify-center rounded-2xl bg-white/10 text-white border border-white/25 px-7 py-4 hover:bg-white/15 transition"
+                      href={CONTACT_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-2xl bg-white text-[#2D7A5F] px-7 py-4 font-medium hover:bg-[#F5F1E8] transition"
                     >
-                      Zadzwoń: {phone}
+                      Zamów darmową wycenę <ArrowRight className="w-4 h-4 ml-2" />
                     </a>
-                  )}
+                    {phone && (
+                      <a
+                        href={`tel:${phone.replace(/\s/g, "")}`}
+                        className="inline-flex items-center justify-center rounded-2xl bg-white/10 text-white border border-white/25 px-7 py-4 hover:bg-white/15 transition"
+                      >
+                        Zadzwoń: {phone}
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </>
   );
 }

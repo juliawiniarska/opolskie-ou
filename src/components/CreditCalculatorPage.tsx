@@ -170,7 +170,7 @@ export default function CreditCalculatorPage() {
   const isLoading = loadingAcf || loadingGlobal;
 
   // SEO Tytuł i Metadane
-  const pageTitle = "Kalkulator Kredytowy i Hipoteczny – Oblicz Ratę | Opolskie Ubezpieczenia";
+  const pageTitle = "Kalkulator kredytowy i hipoteczny – Oblicz ratę | Opolskie Ubezpieczenia";
   const pageDescription = "Skorzystaj z darmowego kalkulatora kredytowego. Oblicz ratę kredytu hipotecznego, sprawdź swoją zdolność i porównaj oferty banków. Doradztwo w Nysie.";
 
   // Wymuszenie tytułu na poziomie dokumentu dla nawigacji "wstecz"

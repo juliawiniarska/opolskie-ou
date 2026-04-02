@@ -492,7 +492,7 @@ export default function ContactPage() {
   // Logika SEO (Helmet) z profesjonalnym tytułem i description
   const helmetContent = (
     <Helmet defer={false}>
-      <title>Kontakt – Doradztwo Ubezpieczeniowe i Kredytowe Nysa | Opolskie Ubezpieczenia</title>
+      <title>Kontakt – Doradztwo ubezpieczeniowe i kredytowe Nysa | Opolskie Ubezpieczenia</title>
       <meta name="description" content="Zapraszamy do kontaktu z biurem w Nysie. Oferujemy bezpłatną analizę ubezpieczeń i kredytów. Napisz, zadzwoń lub przyjdź." />
     </Helmet>
   );
