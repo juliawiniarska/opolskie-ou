@@ -11,6 +11,7 @@ import {
   X,
   CheckCircle,
 } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 import { PageLoader, usePageLoader } from "../GlobalContext";
 
@@ -139,7 +140,7 @@ function WidgetModal({ widget, acf, onClose }: { widget: (typeof LENDI_WIDGETS)[
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-100 flex items-start justify-center pt-4 sm:pt-6 px-4 pb-4">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-4 sm:pt-6 px-4 pb-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] bg-white rounded-3xl shadow-2xl border border-[#2D7A5F]/10 overflow-hidden flex flex-col">
@@ -168,6 +169,15 @@ export default function CreditCalculatorPage() {
 
   const isLoading = loadingAcf || loadingGlobal;
 
+  // SEO Tytuł i Metadane
+  const pageTitle = "Kalkulator Kredytowy i Hipoteczny – Oblicz Ratę | Opolskie Ubezpieczenia";
+  const pageDescription = "Skorzystaj z darmowego kalkulatora kredytowego. Oblicz ratę kredytu hipotecznego, sprawdź swoją zdolność i porównaj oferty banków. Doradztwo w Nysie.";
+
+  // Wymuszenie tytułu na poziomie dokumentu dla nawigacji "wstecz"
+  useEffect(() => {
+    document.title = pageTitle;
+  }, []);
+
   const loadGlobalData = useCallback(() => {
     fetchGlobal(async () => {
       const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
@@ -191,110 +201,123 @@ export default function CreditCalculatorPage() {
   const phone = global.global_phone || "";
   const openWidget = LENDI_WIDGETS.find((w) => w.id === openWidgetId) || null;
 
+  // Nadpisujemy domyślny tytuł jeśli w ACF zdefiniowano meta_title
   useEffect(() => {
-    if (acf?.kalkkred_meta_title) document.title = acf.kalkkred_meta_title;
+    if (acf?.kalkkred_meta_title) {
+      document.title = acf.kalkkred_meta_title;
+    }
   }, [acf]);
 
-  if (isLoading) return <PageLoader />;
+  const helmetContent = (
+    <Helmet defer={false}>
+      <title>{acf?.kalkkred_meta_title || pageTitle}</title>
+      <meta name="description" content={pageDescription} />
+    </Helmet>
+  );
+
+  if (isLoading) return <>{helmetContent}<PageLoader /></>;
 
   return (
-    <main className="bg-[#F5F1E8]">
-      <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
-        <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
-        <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
-        <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
-        
-        <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="max-w-4xl">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 border border-white/20">
-              <Calculator className="w-9 h-9 text-white" strokeWidth={1.5} />
+    <>
+      {helmetContent}
+      <main className="bg-[#F5F1E8]">
+        <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
+          <div className="pointer-events-none absolute top-16 right-10 sm:right-24 w-20 h-20 sm:w-28 sm:h-28 border-4 border-white/10 rounded-full" />
+          <div className="pointer-events-none absolute top-40 right-6 sm:right-16 w-14 h-14 sm:w-20 sm:h-20 border-4 border-white/10 rotate-45" />
+          <div className="pointer-events-none absolute -bottom-10 left-6 sm:left-16 w-28 h-28 sm:w-40 sm:h-40 border-4 border-white/10 rounded-full" />
+          
+          <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-16">
+            <div className="max-w-4xl">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-6 border border-white/20">
+                <Calculator className="w-9 h-9 text-white" strokeWidth={1.5} />
+              </div>
+              <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
+                {acf?.kalkkred_hero_title}
+              </h1>
+              <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-3xl">
+                {acf?.kalkkred_hero_desc}
+              </p>
             </div>
-            <h1 className="text-5xl sm:text-4xl lg:text-6xl text-white leading-tight mb-5 sm:mb-8">
-              {acf?.kalkkred_hero_title}
-            </h1>
-            <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-3xl">
-              {acf?.kalkkred_hero_desc}
-            </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
-        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="mb-10 text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D7A5F]/10 rounded-full mb-6">
-              <Calculator className="w-4 h-4 text-[#2D7A5F]" />
-              <span className="text-sm text-[#2D7A5F] uppercase tracking-wide">
-                {acf?.kalkkred_badge}
-              </span>
+        <section className="py-14 sm:py-20 lg:py-24 bg-[#F5F1E8] relative">
+          <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-16">
+            <div className="mb-10 text-center max-w-3xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D7A5F]/10 rounded-full mb-6">
+                <Calculator className="w-4 h-4 text-[#2D7A5F]" />
+                <span className="text-sm text-[#2D7A5F] uppercase tracking-wide">
+                  {acf?.kalkkred_badge}
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-4">
+                {acf?.kalkkred_section_title}
+              </h2>
+              <p className="text-base sm:text-lg text-[#6B6B6B]">
+                {acf?.kalkkred_section_desc}
+              </p>
             </div>
-            <h2 className="text-3xl sm:text-4xl text-[#1A1A1A] mb-4">
-              {acf?.kalkkred_section_title}
-            </h2>
-            <p className="text-base sm:text-lg text-[#6B6B6B]">
-              {acf?.kalkkred_section_desc}
-            </p>
-          </div>
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
-            {LENDI_WIDGETS.map((widget) => {
-              const Icon = widget.icon;
-              return (
-                <button
-                  key={widget.id}
-                  onClick={() => setOpenWidgetId(widget.id)}
-                  className="group bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-[#2D7A5F]/10 hover:shadow-2xl transition-all hover:-translate-y-1 relative overflow-hidden flex flex-col text-left cursor-pointer"
-                >
-                  <div className="pointer-events-none absolute top-0 right-0 w-20 h-20 bg-[#2D7A5F]/5 rounded-bl-full transition-all group-hover:bg-[#2D7A5F]/10" />
-                  <div className="relative mb-4 h-6 flex items-center">
-                    <span className="inline-block text-[11px] text-[#2D7A5F] px-3 py-1 bg-[#2D7A5F]/10 rounded-full uppercase tracking-wide">{widget.category}</span>
-                  </div>
-                  <div className="relative mb-4 h-14 flex items-center">
-                    <div className="w-14 h-14 rounded-2xl bg-[#2D7A5F]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Icon className="w-7 h-7 text-[#2D7A5F]" />
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+              {LENDI_WIDGETS.map((widget) => {
+                const Icon = widget.icon;
+                return (
+                  <button
+                    key={widget.id}
+                    onClick={() => setOpenWidgetId(widget.id)}
+                    className="group bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-[#2D7A5F]/10 hover:shadow-2xl transition-all hover:-translate-y-1 relative overflow-hidden flex flex-col text-left cursor-pointer"
+                  >
+                    <div className="pointer-events-none absolute top-0 right-0 w-20 h-20 bg-[#2D7A5F]/5 rounded-bl-full transition-all group-hover:bg-[#2D7A5F]/10" />
+                    <div className="relative mb-4 h-6 flex items-center">
+                      <span className="inline-block text-[11px] text-[#2D7A5F] px-3 py-1 bg-[#2D7A5F]/10 rounded-full uppercase tracking-wide">{widget.category}</span>
                     </div>
-                  </div>
-                  <h3 className="text-xl text-[#1A1A1A] mb-2 h-14 line-clamp-2">{acf?.[widget.acfTitleField]}</h3>
-                  <p className="text-sm text-[#6B6B6B] leading-relaxed mb-4 h-16 line-clamp-3">{acf?.[widget.acfDescField]}</p>
-                  <div className="h-px bg-[#2D7A5F]/10 mb-4" />
-                  <div className="mb-4 flex-1">
-                    <ul className="space-y-2">
-                      {widget.bullets.map((bullet, idx) => (
-                        <li key={idx} className="flex items-start gap-3 text-sm text-[#6B6B6B]">
-                          <div className="w-4 h-4 rounded-full bg-[#2D7A5F]/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <CheckCircle className="w-3 h-3 text-[#2D7A5F]" />
-                          </div>
-                          <span>{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-[#2D7A5F]/10 mt-auto text-[#2D7A5F]">
-                    <span>{widget.actionLabel}</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </button>
-              );
-            })}
+                    <div className="relative mb-4 h-14 flex items-center">
+                      <div className="w-14 h-14 rounded-2xl bg-[#2D7A5F]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Icon className="w-7 h-7 text-[#2D7A5F]" />
+                      </div>
+                    </div>
+                    <h3 className="text-xl text-[#1A1A1A] mb-2 h-14 line-clamp-2">{acf?.[widget.acfTitleField]}</h3>
+                    <p className="text-sm text-[#6B6B6B] leading-relaxed mb-4 h-16 line-clamp-3">{acf?.[widget.acfDescField]}</p>
+                    <div className="h-px bg-[#2D7A5F]/10 mb-4" />
+                    <div className="mb-4 flex-1">
+                      <ul className="space-y-2">
+                        {widget.bullets.map((bullet, idx) => (
+                          <li key={idx} className="flex items-start gap-3 text-sm text-[#6B6B6B]">
+                            <div className="w-4 h-4 rounded-full bg-[#2D7A5F]/10 flex items-center justify-center shrink-0 mt-0.5">
+                              <CheckCircle className="w-3 h-3 text-[#2D7A5F]" />
+                            </div>
+                            <span>{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-[#2D7A5F]/10 mt-auto text-[#2D7A5F]">
+                      <span>{widget.actionLabel}</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="pb-20 bg-[#F5F1E8]">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-          <div className="bg-[#2D7A5F] rounded-[40px] p-8 sm:p-12 text-white text-center relative overflow-hidden">
-            <div className="relative z-10">
-              <h3 className="text-2xl sm:text-3xl mb-4">{acf?.kalkkred_cta_title}</h3>
-              <p className="text-white/85 mb-8 max-w-2xl mx-auto">{acf?.kalkkred_cta_desc}</p>
-              <div className="flex flex-wrap justify-center gap-4">
-                {phone && <a href={`tel:${phone.replace(/\s/g, "")}`} className="bg-white text-[#2D7A5F] px-8 py-4 rounded-2xl hover:bg-[#F5F1E8] transition-all">{phone}</a>}
+        <section className="pb-20 bg-[#F5F1E8]">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+            <div className="bg-[#2D7A5F] rounded-[40px] p-8 sm:p-12 text-white text-center relative overflow-hidden">
+              <div className="relative z-10">
+                <h3 className="text-2xl sm:text-3xl mb-4">{acf?.kalkkred_cta_title}</h3>
+                <p className="text-white/85 mb-8 max-w-2xl mx-auto">{acf?.kalkkred_cta_desc}</p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  {phone && <a href={`tel:${phone.replace(/\s/g, "")}`} className="bg-white text-[#2D7A5F] px-8 py-4 rounded-2xl hover:bg-[#F5F1E8] transition-all">{phone}</a>}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {openWidget && <WidgetModal widget={openWidget} acf={acf} onClose={() => setOpenWidgetId(null)} />}
-    </main>
+        {openWidget && <WidgetModal widget={openWidget} acf={acf} onClose={() => setOpenWidgetId(null)} />}
+      </main>
+    </>
   );
 }
