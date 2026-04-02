@@ -25,7 +25,7 @@ import FAQPage from "./components/FAQPage";
 import CreditsPage from "./components/CreditsPage";
 import CreditCalculatorPage from "./components/CreditCalculatorPage";
 import { GlobalProvider } from './GlobalContext';
-
+import { HelmetProvider } from 'react-helmet-async';
 
 function HomePage() {
   return (
@@ -41,6 +41,7 @@ function HomePage() {
 
 export default function App() {
   return (
+    <HelmetProvider>
     <GlobalProvider>
       <div className="min-h-screen bg-[#F5F1E8] flex flex-col overflow-x-hidden relative">
         <ScrollToHash />
@@ -79,5 +80,6 @@ export default function App() {
         <CookieBanner />
       </div>
     </GlobalProvider>
+    </HelmetProvider>
   );
 }

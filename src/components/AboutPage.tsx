@@ -2,7 +2,7 @@ import { Phone, Mail, ShieldCheck, Handshake, Sparkles } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useEffect, useState } from "react";
 import { PageLoader, usePageLoader } from "../GlobalContext";
-
+import { Helmet } from 'react-helmet-async'; // Pamiętaj o imporcie na górze!
 // --- KONFIGURACJA ---
 const WP_BASE = "https://www.opolskieubezpieczenia.pl/wp";
 const ABOUT_PAGE_ID = 2692; // ID strony "O NAS"
@@ -61,6 +61,11 @@ export default function AboutPage() {
   if (isLoading) return <PageLoader />;
 
   return (
+    <>
+    <Helmet>
+      <title>O nas – Poznaj zespół Opolskie Ubezpieczenia w Nysie</title>
+      <meta name="description" content="Poznaj historię i wartości naszej agencji. Od lat wspieramy mieszkańców Nysy i Opolszczyzny w doborze optymalnych rozwiązań ubezpieczeniowych oraz kredytowych." />
+    </Helmet>
     <main className="bg-[#F5F1E8]">
       {/* HERO */}
       <section className="relative overflow-hidden bg-[#2D7A5F] pt-28 sm:pt-32 pb-14 sm:pb-16 lg:pb-20">
@@ -272,5 +277,6 @@ export default function AboutPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }
