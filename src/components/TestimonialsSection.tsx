@@ -21,7 +21,7 @@ export function TestimonialsSection() {
     fetchWithLoader(async () => {
       try {
         const res = await fetch(
-          `${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf&t=${Date.now()}`
+          `${WP_BASE}/wp-json/wp/v2/pages/${HOME_PAGE_ID}?_fields=acf`
         );
         if (res.ok) {
           const json = await res.json();

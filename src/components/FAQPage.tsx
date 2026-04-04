@@ -147,7 +147,7 @@ export default function FAQPage() {
     fetchGlobalReq(async () => {
       try {
         const res = await fetch(
-          `${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`
+          `${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`
         );
         if (res.ok) {
           const json = await res.json();
@@ -165,7 +165,7 @@ export default function FAQPage() {
     fetchAcf(async () => {
       try {
         const res = await fetch(
-          `${WP_BASE}/wp-json/wp/v2/pages/${FAQ_PAGE_ID}?_fields=acf&t=${Date.now()}`
+          `${WP_BASE}/wp-json/wp/v2/pages/${FAQ_PAGE_ID}?_fields=acf`
         );
         if (res.ok) {
           const json = await res.json();

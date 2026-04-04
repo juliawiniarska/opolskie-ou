@@ -41,7 +41,7 @@ export default function OfferDetailPage() {
   const loadOfferData = useCallback(() => {
     fetchWithLoader(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${OFFERS_PAGE_ID}?_fields=acf&t=${Date.now()}`);
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${OFFERS_PAGE_ID}?_fields=acf`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setTexts(json.acf);

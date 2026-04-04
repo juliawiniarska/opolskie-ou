@@ -142,14 +142,14 @@ export default function CreditsPage() {
 
   const loadGlobalData = useCallback(() => {
     fetchGlobal(async () => {
-      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
+      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
       if (res.ok) { const json = await res.json(); if (json.acf) setGlobal(json.acf); }
     });
   }, [fetchGlobal]);
 
   const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
-      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${CREDITS_PAGE_ID}?_fields=acf&t=${Date.now()}`);
+      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${CREDITS_PAGE_ID}?_fields=acf`);
       if (res.ok) { const json = await res.json(); if (json.acf) setTexts(json.acf); }
     });
   }, [fetchTexts]);

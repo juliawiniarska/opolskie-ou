@@ -21,7 +21,7 @@ export default function AboutPage() {
   // 1. Pobieranie treści strony O NAS
   useEffect(() => {
     fetchTexts(async () => {
-      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${ABOUT_PAGE_ID}?_fields=acf&t=${Date.now()}`);
+      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${ABOUT_PAGE_ID}?_fields=acf`);
       if (res.ok) {
         const json = await res.json();
         if (json.acf) setTexts(json.acf);
@@ -32,7 +32,7 @@ export default function AboutPage() {
   // 2. Pobieranie danych globalnych
   useEffect(() => {
     fetchGlobal(async () => {
-      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
+      const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
       if (res.ok) {
         const json = await res.json();
         if (json.acf) setGlobal(json.acf);

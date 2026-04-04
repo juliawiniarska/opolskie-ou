@@ -77,7 +77,7 @@ export default function PrivacyPolicyPage() {
   const loadPageData = useCallback(() => {
     fetchPage(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${PRIVACY_PAGE_ID}?_fields=acf&t=${Date.now()}`);
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${PRIVACY_PAGE_ID}?_fields=acf`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setTexts(json.acf);
@@ -92,7 +92,7 @@ export default function PrivacyPolicyPage() {
   const loadGlobalData = useCallback(() => {
     fetchGlobalReq(async () => {
       try {
-        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf&t=${Date.now()}`);
+        const res = await fetch(`${WP_BASE}/wp-json/wp/v2/pages/${GLOBAL_SETTINGS_ID}?_fields=acf`);
         if (res.ok) {
           const json = await res.json();
           if (json.acf) setGlobal(json.acf);

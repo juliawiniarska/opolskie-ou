@@ -206,7 +206,7 @@ export default function BlogPage() {
 
   const loadTextsData = useCallback(() => {
     fetchTexts(async () => {
-      const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_PAGE_ID}?_fields=acf&t=${Date.now()}`;
+      const url = `${WP_BASE}/wp-json/wp/v2/pages/${BLOG_PAGE_ID}?_fields=acf`;
       const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
@@ -223,7 +223,7 @@ export default function BlogPage() {
       setLoadingFeatured(true);
       setErrorMsg(null);
       try {
-        const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=1&page=1&_embed=true&t=${Date.now()}`;
+        const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=1&page=1&_embed=true`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Błąd serwera WordPress");
         const totalStr = res.headers.get("X-WP-Total");
@@ -255,7 +255,7 @@ export default function BlogPage() {
       setLoadingPage(true);
       try {
         const offset = 1 + (page - 1) * PAGE_SIZE;
-        const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=${PAGE_SIZE}&offset=${offset}&_embed=true&t=${Date.now()}`;
+        const url = `${WP_BASE}/wp-json/wp/v2/posts?per_page=${PAGE_SIZE}&offset=${offset}&_embed=true`;
         const res = await fetch(url);
         if (!res.ok) throw new Error();
         const data = (await res.json()) as WpPost[];
